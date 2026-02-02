@@ -165,9 +165,9 @@ def new_door_contact(id):
         "firstname": "New",
         "middlename": "",
         "lastname": "Voter",
-        "city": door["city"],
         "cellphone": "",
         "landlinephone": "",
+        "bestphone": "",
         "gender": "",
         "race": "",
         "birthdate": "",
@@ -270,7 +270,7 @@ def edit_voter(id):
         diffs = []
         for (
             field
-        ) in "activeinactive firstname middlename lastname city cellphone landlinephone bestphone gender race birthdate".split():
+        ) in "activeinactive firstname middlename lastname cellphone landlinephone bestphone gender race birthdate".split():
             new = request.form.get(field)
             if voter[field] != new:
                 diffs.append((field, voter[field], new))

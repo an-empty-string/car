@@ -22,7 +22,6 @@ def present(x):
 
 
 for line in lines:
-    print(line.keys())
     addr = " ".join(
         present(
             [
@@ -108,4 +107,4 @@ database = {
 }
 
 with open(DATABASE_OUT, "w") as f:
-    json.dump(database, f)
+    json.dump(database, f, indent=4)

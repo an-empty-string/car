@@ -33,12 +33,11 @@
     {{ render_text("firstname", "First name") }}
     {{ render_text("middlename", "Middle name") }}
     {{ render_text("lastname", "Last name") }}
-    {{ render_text("city", "City") }}
     {{ render_text("cellphone", "Cell phone (used for textbank)") }}
     {{ render_text("landlinephone", "Landline phone") }}
     {{ render_text("bestphone", "Best phone (used for phonebank)") }}
     {{ render_dropdown(
-        "gender", "Gender", [("", "Unknown"), ("M", "Male"), ("F", "Female"), ("X", "none biney")]
+        "gender", "Gender", [("", "Unknown"), ("M", "Male"), ("F", "Female"), ("X", "Nonbinary")]
     ) }}
     {{ render_dropdown(
         "race", "Race", [("", "Unknown"), ("W", "White"), ("B", "Black"), ("A", "Asian"), ("I", "American Indian"), ("H", "Hispanic"), ("O", "Other")]

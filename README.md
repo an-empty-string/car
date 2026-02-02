@@ -2,8 +2,8 @@
 
 * Update the VOTER_FILE and DATABASE_OUT parameters in import_voters.py (DATABASE_OUT should be a temporary file that you inspect before moving it to database.json).
 * Run the import_voters.py script.
-*     Expects an Alabama Secretary of State-format voter file export.
-*     Writes a single turf containing all voters (other future scripts will create other turfs).
+  * Expects an Alabama Secretary of State-format voter file export.
+  * Writes a single turf containing all voters (other future scripts will create other turfs).
 * Restart the app service to pick up the new database.
 
 Some todos:
