@@ -1,5 +1,7 @@
-/*.json
+.envrc
 /*.csv
+/*.geojson
+/*.json
 /password.txt
 /secret_key.txt
 uv.lock
