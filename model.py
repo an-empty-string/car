@@ -11,8 +11,8 @@ def timestamp() -> str:
 
 
 class Model(BaseModel):
-    created_by: str
     id_: ID | None = Field(None, alias="_id")
+    created_by: str
 
     @property
     def id(self) -> ID:
@@ -50,8 +50,8 @@ class Door(Model):
     unit: str = ""
     city: str = ""
     voters: list[ID] = []
-    lat: float | None
-    lon: float | None
+    lat: float | None = None
+    lon: float | None = None
 
 
 class Voter(Model):
@@ -78,9 +78,9 @@ def is_valid_ordering(l: Sequence[Model]) -> bool:
 
 
 class Database(BaseModel):
-    turfs: list[Turf]
-    doors: list[Door]
-    voters: list[Voter]
+    turfs: list[Turf] = []
+    doors: list[Door] = []
+    voters: list[Voter] = []
 
     def get_voter_by_id(self, id: ID) -> Voter:
         return self.voters[id].model_copy(deep=True)

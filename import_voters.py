@@ -53,15 +53,13 @@ for line in lines:
             address=addr,
             unit=unit,
             city=city,
-            voters=[],
             created_by="voter import",
-            lat=None,
-            lon=None,
         )
 
     door = doors[door_key]
 
     # create the voter
+    voter_phone= f"({line['Phone - Area Code']}) {line['Phone Number - Exchange']}-{line['Phone Number - Last Four Digits']}"
     voter = Voter(
         _id=next(voter_id_pool),
         statevoterid=line["Registrant ID"],
@@ -69,20 +67,16 @@ for line in lines:
         firstname=line["First Name"],
         middlename=line["Middle Name"],
         lastname=line["Last Name"],
-        cellphone="",
-        landlinephone=f"({line['Phone - Area Code']}) {line['Phone Number - Exchange']}-{line['Phone Number - Last Four Digits']}",
+        landlinephone=voter_phone,
         gender=line["Gender"],
         race=line["Race"],
         birthdate=f"{2026 - int(line['Age'])}-01-01",
         regdate=line["Date of Registration"],
-        notes=[],
         created_by="system import",
         door_id=door.id,
         turf_id=0,  # FIXME: None,
-        phonebankturf=None,
-        bestphone="",
+        bestphone=voter_phone,
     )
-    voter.bestphone = voter.landlinephone
 
     voters.append(voter)
     door.voters.append(voter.id)
@@ -93,10 +87,8 @@ database = Database(
         Turf(
             _id=0,
             desc="All Voters",
-            phone_key="",
             doors=[door.id for door in doors.values()],
             voters=[voter.id for voter in voters],
-            notes=[],
             created_by="system import",
         )
     ],
