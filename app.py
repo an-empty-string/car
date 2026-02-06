@@ -7,7 +7,6 @@ from flask import (
     Flask,
     abort,
     g,
-    make_response,
     redirect,
     render_template,
     request,

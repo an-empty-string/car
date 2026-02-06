@@ -12,7 +12,7 @@ def timestamp() -> str:
 
 class Model(BaseModel):
     created_by: str
-    id_: ID | None = Field(default=None, alias="_id", serialization_alias="_id")
+    id_: ID | None = Field(None, alias="_id")
 
     @property
     def id(self) -> ID:
@@ -22,6 +22,9 @@ class Model(BaseModel):
 
     def with_id(self, id: ID) -> Self:
         return self.model_copy(update={"id_": id}, deep=True)
+
+    def has_id(self) -> bool:
+        return self.id_ is not None
 
 
 class Note(BaseModel):
@@ -83,7 +86,7 @@ class Database(BaseModel):
         return self.voters[id].model_copy(deep=True)
 
     def save_voter(self, voter: Voter) -> Voter:
-        if voter.id_ is not None:  # update voter
+        if voter.has_id():  # update voter
             voter_to_update = self.voters[voter.id]
             update_data = voter.model_dump(exclude_unset=True)
             for key, value in update_data.items():
@@ -94,19 +97,24 @@ class Database(BaseModel):
             voter_result = voter.with_id(0)
             self.voters = [voter_result]
 
-        else: # new (not first) voter
+        else:  # new (not first) voter
             voter_result = voter.with_id(self.voters[-1].id)
             self.voters.append(voter_result)
 
         self.commit()
         return voter_result.model_copy(deep=True)
 
+    def to_json(self):
+        return self.model_dump_json(indent=4, by_alias=True)
+
     def commit(self):
-        if any(not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)):
+        if any(
+            not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)
+        ):
             raise AssertionError("frick!! tihs is a bug")
 
         with open("database-new.json", "w") as f:
-            f.write(self.model_dump_json(indent=4))
+            f.write(self.to_json())
 
         os.rename("database.json", f"database-{timestamp()}.json")
         os.rename("database-new.json", f"database.json")

@@ -48,6 +48,7 @@ for line in lines:
     if door_key not in doors:
         door_id = next(door_id_pool)
         doors[door_key] = Door(
+            _id=door_id,
             turf_id=0,  # FIXME: None
             address=addr,
             unit=unit,
@@ -56,12 +57,13 @@ for line in lines:
             created_by="voter import",
             lat=None,
             lon=None,
-        ).with_id(door_id)
+        )
 
     door = doors[door_key]
 
     # create the voter
     voter = Voter(
+        _id=next(voter_id_pool),
         statevoterid=line["Registrant ID"],
         activeinactive=line["Registrant Status"],
         firstname=line["First Name"],
@@ -79,7 +81,7 @@ for line in lines:
         turf_id=0,  # FIXME: None,
         phonebankturf=None,
         bestphone="",
-    ).with_id(next(voter_id_pool))
+    )
     voter.bestphone = voter.landlinephone
 
     voters.append(voter)
@@ -89,17 +91,18 @@ for line in lines:
 database = Database(
     turfs=[
         Turf(
+            _id=0,
             desc="All Voters",
             phone_key="",
             doors=[door.id for door in doors.values()],
             voters=[voter.id for voter in voters],
             notes=[],
             created_by="system import",
-        ).with_id(0)
+        )
     ],
     doors=list(doors.values()),
     voters=voters,
 )
 
 with open(DATABASE_OUT, "w") as f:
-    f.write(database.model_dump_json(indent=4))
+    f.write(database.to_json())
