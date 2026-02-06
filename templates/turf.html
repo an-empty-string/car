@@ -2,7 +2,14 @@
 {% block title %}Turf: {{ turf.desc }}{% endblock %}
 {% block content %}
 <h1>{{ turf.desc }}</h1>
-<!-- https://www.google.com/maps/dir/{% for door in turf.doors %}{{ doors[door].address + ' ' + doors[door].city + ' AL'|urlencode }}/{% endfor %} -->
+<!--
+https://www.google.com/maps/dir/{% for door in turf.doors %}{{ doors[door].address + ' ' + doors[door].city + ' AL'|urlencode }}/{% endfor %}
+-->
+
+{% if session.use_map|default(True) %}
+<div id="map" style="height: 50vh;"></div>
+{% endif %}
+
 <h2>🛢️ Doors</h2>
 <ul class="secretly-a-table">
     {% for door in turf.doors %}
@@ -12,4 +19,31 @@
 <h2>📝 Notes</h2>
 {{ render_notes(turf) }}
 {{ note_link("turf", turf._id) }}
+
+{% if session.use_map|default(True) %}
+<script>
+    var geodoors = {{ geodoors | tojson }};
+
+    var map = L.map("map").setView([33.53, -86.81], 11);;
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var layer = L.geoJSON(geodoors, {
+        onEachFeature: ((feature, layer) => {
+            layer.bindPopup(
+                `<a href="${feature.properties.url}">${feature.properties.address}</a><br>${feature.properties.n_voters} voter(s)`
+            )
+        }),
+    });
+
+    layer.addTo(map);
+    var bounds = layer.getBounds();
+    console.log(bounds);
+    map.fitBounds(bounds);
+
+    L.control.locate().addTo(map);
+</script>
+{% endif %}
 {% endblock %}

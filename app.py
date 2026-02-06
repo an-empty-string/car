@@ -118,7 +118,18 @@ def phonebank_toggle():
         del session["phonebank"]
     else:
         session["phonebank"] = 1
-    return redirect(request.args.get("return"))
+
+    return redirect(request.args.get("return", "/"))
+
+
+@app.route("/map_toggle/")
+def map_toggle():
+    if "use_map" in session:
+        del session["use_map"]
+    else:
+        session["use_map"] = 0
+
+    return redirect(request.args.get("return", "/"))
 
 
 @app.route("/turf/<int:id>/")
@@ -128,7 +139,35 @@ def show_turf(id):
     phone_key = turf.get("phone_key")
 
     if not phone_key:
-        return render_template("turf.html", turf=turf)
+        geodoors = []
+        for door_id in turf["doors"]:
+            door = data["doors"][door_id]
+            geodoors.append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [door["lon"], door["lat"]],
+                    },
+                    "properties": {
+                        "address": door["address"],
+                        "unit": door["unit"],
+                        "n_voters": len(door["voters"]),
+                        "url": url_for("show_door", id=door["_id"]),
+                    },
+                }
+            )
+
+        geodoors = {
+            "type": "FeatureCollection",
+            "crs": {
+                "type": "name",
+                "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+            },
+            "features": geodoors,
+        }
+
+        return render_template("turf.html", turf=turf, geodoors=geodoors)
 
     voters = [data["voters"][i] for i in turf["voters"]]
     # voters = [v for v in voters if phone_key in v and v[phone_key]]
