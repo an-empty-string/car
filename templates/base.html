@@ -57,6 +57,17 @@
         </title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="/static/mycoolstylesheet.css">
+
+        <!-- cribbed from rose, thank u hunter <3 -->
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+                    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+                    crossorigin=""></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+                               integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+                               crossorigin=""/>
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+        <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
     </head>
     <body>
         {% block content %}
@@ -68,6 +79,11 @@
             <a href="/phonebank_toggle/?return={{ request.url|urlencode }}">
                 {% if g.phonebank %}disable{% else %}enable{% endif %}
                 phonebank mode!
+            </a>
+            &middot;
+            <a href="/map_toggle/?return={{ request.url|urlencode }}">
+                {% if session.use_map|default(True) %}disable{% else %}enable{% endif %}
+                turf maps!
             </a>
         </footer>
     </body>
