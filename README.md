@@ -16,3 +16,19 @@ Some todos:
 Once you have imported voters you will probably want to geocode their doors so you can cut turf.
 
 You can use the `geocode_voters.py` script for this. It references the [geocode](https://github.com/an-empty-string/geocode) repository. Getting data sources for geocoding and defining a correct `CompositeGeocoder` is unfortunately left as an exercise for the reader.
+
+# Getting Started
+
+## Virtualenv
+```sh
+python -m venv .venv
+source .venv/bin/activate
+pip install .
+python3 app.py
+```
+
+## uv
+```sh
+uv run app.py
+```
+

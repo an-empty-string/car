@@ -1,0 +1,13 @@
+[project]
+name = "car"
+version = "0.0.0"
+requires-python = ">=3.10"
+description = "car (canvassing action resource). bep bep (be engaged politically)"
+dependencies = [
+    "flask==3.1.2"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
