@@ -280,7 +280,7 @@ def edit_voter(id):
             rdiffs = {}
             text = []
             for field, old, new in diffs:
-                rdiffs[field] = [old, new]
+                rdiffs[field] = (old, new)
                 text.append(f"changed {field} from {old!r} to {new!r}.")
 
             voter["notes"].insert(
