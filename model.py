@@ -95,6 +95,10 @@ class Database(BaseModel):
         if v.door_id is not None and v.id not in self.doors[v.door_id].voters:
             self.doors[v.door_id].voters.append(v.id)
 
+        # if there's a turf ID, add the voter to the turf
+        if v.turf_id is not None and v.id not in self.turfs[v.turf_id].voters:
+            self.turfs[v.turf_id].voters.append(v.id)
+
         if commit:
             self.commit()
         return v
@@ -136,7 +140,7 @@ class Database(BaseModel):
             collection.append(model_result)
 
         else:  # new (not first) model
-            model_result = m.with_id(collection[-1].id)
+            model_result = m.with_id(collection[-1].id + 1)
             collection.append(model_result)
 
         return model_result.model_copy(deep=True)
