@@ -1,9 +1,9 @@
 # stdlib
-from collections.abc import Callable
 import datetime
 import json
 import os
 import secrets
+from collections.abc import Callable
 from typing import Any
 
 # 3p

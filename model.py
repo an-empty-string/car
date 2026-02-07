@@ -1,6 +1,8 @@
-from datetime import datetime
 import os
-from typing import Self, Sequence
+from collections.abc import Sequence
+from datetime import datetime
+from typing import Self
+
 from pydantic import BaseModel, Field
 
 type ID = int
