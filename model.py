@@ -5,13 +5,16 @@ from pydantic import BaseModel, Field
 
 type ID = int
 
+DATABASE_FILE = "database.json"
+DATABASE_TMP_FILE = "database-new.json"
+
 
 def timestamp() -> str:
     return datetime.now().strftime("%b %d %I:%M%P")
 
 
 class Model(BaseModel):
-    id_: ID | None = Field(None, alias="_id")
+    id_: ID | None = Field(default=None, alias="_id")
     created_by: str
 
     @property
@@ -73,8 +76,8 @@ class Voter(Model):
     bestphone: str = ""
 
 
-def is_valid_ordering(l: Sequence[Model]) -> bool:
-    return all(m.id == idx for idx, m in enumerate(l))
+def is_valid_ordering(models: Sequence[Model]) -> bool:
+    return all(m.id == idx for idx, m in enumerate(models))
 
 
 class Database(BaseModel):
@@ -85,24 +88,62 @@ class Database(BaseModel):
     def get_voter_by_id(self, id: ID) -> Voter:
         return self.voters[id].model_copy(deep=True)
 
-    def save_voter(self, voter: Voter) -> Voter:
-        if voter.has_id():  # update voter
-            voter_to_update = self.voters[voter.id]
-            update_data = voter.model_dump(exclude_unset=True)
+    def save_voter(self, voter: Voter, *, commit: bool = False) -> Voter:
+        v = self._save_model(voter, self.voters)
+
+        # if there's a door ID, add the voter to the door
+        if v.door_id is not None and v.id not in self.doors[v.door_id].voters:
+            self.doors[v.door_id].voters.append(v.id)
+
+        # if there's a turf ID, add the voter to the turf
+        if v.turf_id is not None and v.id not in self.turfs[v.turf_id].voters:
+            self.turfs[v.turf_id].voters.append(v.id)
+
+        if commit:
+            self.commit()
+        return v
+
+    def get_door_by_id(self, id: ID) -> Door:
+        return self.doors[id].model_copy(deep=True)
+
+    def save_door(self, door: Door, *, commit: bool = False) -> Door:
+        d = self._save_model(door, self.doors)
+
+        # if there's a turf ID, add the door to the turf
+        if d.turf_id is not None and d.id not in self.turfs[d.turf_id].doors:
+            self.turfs[d.turf_id].doors.append(d.id)
+
+        if commit:
+            self.commit()
+        return d
+
+    def get_turf_by_id(self, id: ID) -> Turf:
+        return self.turfs[id].model_copy(deep=True)
+
+    def save_turf(self, turf: Turf, *, commit: bool = False) -> Turf:
+        t = self._save_model(turf, self.turfs)
+
+        if commit:
+            self.commit()
+        return t
+
+    def _save_model[T: Model](self, m: T, collection: list[T]):
+        if m.has_id():  # update existing
+            model_to_update = collection[m.id]
+            update_data = m.model_dump(exclude_unset=True)
             for key, value in update_data.items():
-                setattr(voter_to_update, key, value)
-            voter_result = voter_to_update
+                setattr(model_to_update, key, value)
+            model_result = model_to_update
 
-        elif not self.voters:  # first voter
-            voter_result = voter.with_id(0)
-            self.voters = [voter_result]
+        elif not collection:  # first model
+            model_result = m.with_id(0)
+            collection.append(model_result)
 
-        else:  # new (not first) voter
-            voter_result = voter.with_id(self.voters[-1].id)
-            self.voters.append(voter_result)
+        else:  # new (not first) model
+            model_result = m.with_id(collection[-1].id + 1)
+            collection.append(model_result)
 
-        self.commit()
-        return voter_result.model_copy(deep=True)
+        return model_result.model_copy(deep=True)
 
     def to_json(self):
         return self.model_dump_json(indent=4, by_alias=True)
@@ -113,8 +154,8 @@ class Database(BaseModel):
         ):
             raise AssertionError("frick!! tihs is a bug")
 
-        with open("database-new.json", "w") as f:
+        with open(DATABASE_TMP_FILE, "w") as f:
             f.write(self.to_json())
 
-        os.rename("database.json", f"database-{timestamp()}.json")
-        os.rename("database-new.json", f"database.json")
+        os.rename(DATABASE_FILE, f"database-{timestamp()}.json")
+        os.rename(DATABASE_TMP_FILE, DATABASE_FILE)
