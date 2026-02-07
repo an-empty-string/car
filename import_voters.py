@@ -1,19 +1,18 @@
 import csv
-import itertools
 
-from model import Database, Door, Voter, Turf
+from model import DATABASE_FILE, Database, Door, Voter, Turf
 
 VOTER_FILE = "SOSVoterList_20230708_6344.csv"
-DATABASE_OUT = "database.json"
+
 
 with open(VOTER_FILE) as f:
     lines = list(csv.DictReader(f))
 
-door_id_pool = itertools.count()
-voter_id_pool = itertools.count()
+
+database = Database()
+database.save_turf(Turf(desc="All Voters", created_by="system import"))
 
 doors: dict[tuple[str, str, str], Door] = {}
-voters: list[Voter] = []
 
 
 for line in lines:
@@ -46,55 +45,38 @@ for line in lines:
     # get or create the door
     door_key = (addr, unit, city)
     if door_key not in doors:
-        door_id = next(door_id_pool)
-        doors[door_key] = Door(
-            _id=door_id,
-            turf_id=0,  # FIXME: None
-            address=addr,
-            unit=unit,
-            city=city,
-            created_by="voter import",
+        doors[door_key] = database.save_door(
+            Door(
+                turf_id=0,  # FIXME: None
+                address=addr,
+                unit=unit,
+                city=city,
+                created_by="voter import",
+            )
         )
 
     door = doors[door_key]
 
     # create the voter
-    voter_phone= f"({line['Phone - Area Code']}) {line['Phone Number - Exchange']}-{line['Phone Number - Last Four Digits']}"
-    voter = Voter(
-        _id=next(voter_id_pool),
-        statevoterid=line["Registrant ID"],
-        activeinactive=line["Registrant Status"],
-        firstname=line["First Name"],
-        middlename=line["Middle Name"],
-        lastname=line["Last Name"],
-        landlinephone=voter_phone,
-        gender=line["Gender"],
-        race=line["Race"],
-        birthdate=f"{2026 - int(line['Age'])}-01-01",
-        regdate=line["Date of Registration"],
-        created_by="system import",
-        door_id=door.id,
-        turf_id=0,  # FIXME: None,
-        bestphone=voter_phone,
+    voter_phone = f"({line['Phone - Area Code']}) {line['Phone Number - Exchange']}-{line['Phone Number - Last Four Digits']}"
+    database.save_voter(
+        Voter(
+            statevoterid=line["Registrant ID"],
+            activeinactive=line["Registrant Status"],
+            firstname=line["First Name"],
+            middlename=line["Middle Name"],
+            lastname=line["Last Name"],
+            landlinephone=voter_phone,
+            gender=line["Gender"],
+            race=line["Race"],
+            birthdate=f"{2026 - int(line['Age'])}-01-01",
+            regdate=line["Date of Registration"],
+            created_by="system import",
+            door_id=door.id,
+            turf_id=0,  # FIXME: None,
+            bestphone=voter_phone,
+        )
     )
 
-    voters.append(voter)
-    door.voters.append(voter.id)
-
-
-database = Database(
-    turfs=[
-        Turf(
-            _id=0,
-            desc="All Voters",
-            doors=[door.id for door in doors.values()],
-            voters=[voter.id for voter in voters],
-            created_by="system import",
-        )
-    ],
-    doors=list(doors.values()),
-    voters=voters,
-)
-
-with open(DATABASE_OUT, "w") as f:
+with open(DATABASE_FILE, "w") as f:
     f.write(database.to_json())
