@@ -1,6 +1,7 @@
-import json
 import os
 import sys
+
+from model import Database
 
 sys.path.insert(
     0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "../geocode")
@@ -8,19 +9,17 @@ sys.path.insert(
 from geocode import get_geocoder  # pyright: ignore
 
 geocoder = get_geocoder()
+database = Database.load()
 
-with open("database.json") as f:
-    obj = json.load(f)
-
-for door in obj["doors"]:
-    if door["lat"] is not None and door["lon"] is not None:
+for door in database.doors:
+    if door.has_geocode:
         continue
 
-    result = geocoder.geocode(door["address"], door["city"])
-
-    print(door["address"], door["city"], result)
+    result = geocoder.geocode(door.address, door.city)
+    print(door.address, door.city, result)
     if result is not None:
-        door["lat"], door["lon"] = result
+        door.lat, door.lon = result
 
-with open("database.json", "w") as f:
-    json.dump(obj, f, indent=4)
+    database.save_door(door)
+
+database.commit()

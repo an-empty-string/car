@@ -1,14 +1,15 @@
 import json
 
-with open("database.json") as f:
-    data = json.load(f)
+from model import Database
+
+database = Database.load()
 
 geojson_doors = []
-for door in data["doors"]:
-    if not (door["lat"] and door["lon"]):
-        # skip doors without geocodes
+for door in database.doors:
+    if not door.has_geocode:
         continue
 
+    door = dict(door)
     door["n_voters"] = len(door.pop("voters"))
     geojson_doors.append(
         {
