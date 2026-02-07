@@ -10,7 +10,7 @@ with open(VOTER_FILE) as f:
 
 
 database = Database()
-database.save_turf(Turf(desc="All Voters", created_by="system import"), commit=False)
+database.save_turf(Turf(desc="All Voters", created_by="system import"))
 
 doors: dict[tuple[str, str, str], Door] = {}
 
@@ -52,8 +52,7 @@ for line in lines:
                 unit=unit,
                 city=city,
                 created_by="voter import",
-            ),
-            commit=False,
+            )
         )
 
     door = doors[door_key]
@@ -76,8 +75,7 @@ for line in lines:
             door_id=door.id,
             turf_id=0,  # FIXME: None,
             bestphone=voter_phone,
-        ),
-        commit=False,
+        )
     )
 
 with open(DATABASE_FILE, "w") as f:

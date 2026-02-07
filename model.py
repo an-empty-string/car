@@ -76,8 +76,8 @@ class Voter(Model):
     bestphone: str = ""
 
 
-def is_valid_ordering(l: Sequence[Model]) -> bool:
-    return all(m.id == idx for idx, m in enumerate(l))
+def is_valid_ordering(models: Sequence[Model]) -> bool:
+    return all(m.id == idx for idx, m in enumerate(models))
 
 
 class Database(BaseModel):
@@ -88,7 +88,7 @@ class Database(BaseModel):
     def get_voter_by_id(self, id: ID) -> Voter:
         return self.voters[id].model_copy(deep=True)
 
-    def save_voter(self, voter: Voter, *, commit: bool = True) -> Voter:
+    def save_voter(self, voter: Voter, *, commit: bool = False) -> Voter:
         v = self._save_model(voter, self.voters)
 
         # if there's a door ID, add the voter to the door
@@ -106,7 +106,7 @@ class Database(BaseModel):
     def get_door_by_id(self, id: ID) -> Door:
         return self.doors[id].model_copy(deep=True)
 
-    def save_door(self, door: Door, *, commit: bool = True) -> Door:
+    def save_door(self, door: Door, *, commit: bool = False) -> Door:
         d = self._save_model(door, self.doors)
 
         # if there's a turf ID, add the door to the turf
@@ -120,7 +120,7 @@ class Database(BaseModel):
     def get_turf_by_id(self, id: ID) -> Turf:
         return self.turfs[id].model_copy(deep=True)
 
-    def save_turf(self, turf: Turf, *, commit: bool = True) -> Turf:
+    def save_turf(self, turf: Turf, *, commit: bool = False) -> Turf:
         t = self._save_model(turf, self.turfs)
 
         if commit:
