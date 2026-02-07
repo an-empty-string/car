@@ -41,4 +41,3 @@ python3 app.py
 ```sh
 uv run app.py
 ```
-

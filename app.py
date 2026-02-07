@@ -1,9 +1,9 @@
 # stdlib
-from collections.abc import Callable
 import datetime
 import json
 import os
 import secrets
+from collections.abc import Callable
 from typing import Any
 
 # 3p
@@ -48,7 +48,7 @@ def save_data():
 
     ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     os.rename("database.json", f"database-{ts}.json")
-    os.rename("database-new.json", f"database.json")
+    os.rename("database-new.json", "database.json")
 
 
 @app.before_request
@@ -341,7 +341,7 @@ def edit_voter(id: ID):
             )
             save_data()
 
-    return redirect(url_for(f"show_voter", id=id))
+    return redirect(url_for("show_voter", id=id))
 
 
 if __name__ == "__main__":

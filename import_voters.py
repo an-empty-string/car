@@ -1,6 +1,6 @@
 import csv
 
-from model import DATABASE_FILE, Database, Door, Voter, Turf
+from model import DATABASE_FILE, Database, Door, Turf, Voter
 
 VOTER_FILE = "SOSVoterList_20230708_6344.csv"
 
