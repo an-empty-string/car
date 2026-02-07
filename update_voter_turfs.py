@@ -6,10 +6,11 @@ import re
 import sqlite3
 import subprocess
 
+from model import Database, Turf
+
 TURF_DATA_PATH = os.environ["TURF_DATA_PATH"]
 
-with open("database.json") as f:
-    data = json.load(f)
+database = Database.load()
 
 
 def sync_turf_props():
@@ -25,25 +26,16 @@ def sync_turf_props():
 
     for rowid, car_id, name in turf_meta:
         if car_id is None:
-            car_id = len(data["turfs"])
-            data["turfs"].append(
-                {
-                    "_id": car_id,
-                    "desc": name,
-                    "phone_key": "",
-                    "doors": [],
-                    "voters": [],
-                    "notes": [],
-                    "created_by": "GIS turf import",
-                }
-            )
+            turf = database.save_turf(Turf(desc=name, created_by="GIS turf import"))
 
             cur = conn.cursor()
-            cur.execute("UPDATE turfs SET car_id=? WHERE rowid=?", (car_id, rowid))
+            cur.execute("UPDATE turfs SET car_id=? WHERE rowid=?", (turf.id, rowid))
             cur.close()
 
         else:
-            data["turfs"][car_id]["desc"] = name
+            turf = database.get_turf_by_id(car_id)
+            turf.desc = name
+            database.save_turf(turf)
 
     conn.commit()
     conn.close()
@@ -76,20 +68,18 @@ def set_voter_turfs():
 
         door_id = int(turfed_door["_id"])
 
-        car_door = data["doors"][door_id]
+        car_door = database.get_door_by_id(door_id)
         new_turf_id = int(turfed_door["car_id"])
 
         # move the door to its new turf
-        data["turfs"][car_door["turf_id"]]["doors"].remove(door_id)
-        data["turfs"][new_turf_id]["doors"].append(door_id)
-        car_door["turf_id"] = new_turf_id
+        car_door.turf_id = new_turf_id
+        database.save_door(car_door)
 
         # move every voter on this door to their new turf
-        for voter_id in car_door["voters"]:
-            car_voter = data["voters"][voter_id]
-            data["turfs"][car_voter["turf_id"]]["voters"].remove(voter_id)
-            data["turfs"][new_turf_id]["voters"].append(voter_id)
-            car_voter["turf_id"] = new_turf_id
+        for voter_id in car_door.voters:
+            car_voter = database.get_voter_by_id(voter_id)
+            car_voter.turf_id = new_turf_id
+            database.save_voter(car_voter)
 
 
 # routing "algorithm"
@@ -98,17 +88,20 @@ def numpart(x):
 
 
 def score_door(door_id, from_door_id):
-    door = data["doors"][door_id]
-    from_door = data["doors"][from_door_id]
+    door = database.get_door_by_id(door_id)
+    from_door = database.get_door_by_id(from_door_id)
 
-    dist = ((float(door["lat"]) - float(from_door["lat"])) * 1000) ** 2 + (
-        (float(door["lon"]) - float(from_door["lon"])) * 1000
+    assert door.lat is not None and door.lon is not None
+    assert from_door.lat is not None and from_door.lon is not None
+
+    dist = ((float(door.lat) - float(from_door.lat)) * 1000) ** 2 + (
+        (float(door.lon) - float(from_door.lon)) * 1000
     ) ** 2
 
-    ad1 = int(numpart(door["address"]))
-    ad2 = int(numpart(from_door["address"]))
+    ad1 = int(numpart(door.address))
+    ad2 = int(numpart(from_door.address))
 
-    if door["address"].split()[1:] == from_door["address"].split()[1:]:
+    if door.address.split()[1:] == from_door.address.split()[1:]:
         dist -= 10
         if ad1 % 2 == ad2 % 2:
             dist -= 5
@@ -116,10 +109,10 @@ def score_door(door_id, from_door_id):
     return dist
 
 
-def reorder_doors(turf):
+def reorder_doors(turf: Turf):
     routes = []
 
-    door_ids = turf["doors"]
+    door_ids = turf.doors
     for start_id in door_ids:
         q = door_ids.copy()
 
@@ -138,21 +131,17 @@ def reorder_doors(turf):
         routes.append((total_score, start_id, result_ids))
 
     routes.sort()
-    turf["doors"] = routes[0][2]
+    turf.doors = routes[0][2]
 
 
 def reorder_all_doors():
-    for turf in data["turfs"]:
+    for turf in database.turfs:
         reorder_doors(turf)
-
-
-def save_data():
-    with open("database.json", "w") as f:
-        json.dump(data, f, indent=4)
+        database.save_turf(turf)
 
 
 if __name__ == "__main__":
     sync_turf_props()
     set_voter_turfs()
     reorder_all_doors()
-    save_data()
+    database.commit()
