@@ -1,8 +1,12 @@
+# stdlib
+from collections.abc import Callable
 import datetime
 import json
 import os
 import secrets
+from typing import Any
 
+# 3p
 from flask import (
     Flask,
     abort,
@@ -13,6 +17,9 @@ from flask import (
     session,
     url_for,
 )
+
+# project
+from model import ID
 
 app = Flask(__name__)
 
@@ -79,7 +86,7 @@ def inject_data():
 
 
 @app.context_processor
-def inject_data_2():
+def inject_data_2() -> dict[str, Callable[..., Any]]:
     return {"is_dnc": is_dnc, "reformat_phone": reformat_phone, "tel_uri": tel_uri}
 
 
@@ -91,12 +98,12 @@ def is_dnc(v):
     return False
 
 
-def reformat_phone(k):
+def reformat_phone(k: str) -> str:
     k = "".join([i for i in k if i.isnumeric()])
     return f"({k[:3]}) {k[3:6]}-{k[6:]}"
 
 
-def tel_uri(k, tel="tel"):
+def tel_uri(k: str, tel: str = "tel") -> str:
     k = "".join([i for i in k if i.isnumeric()])
     return f"{tel}:+1{k[:10]}"
 
@@ -132,7 +139,7 @@ def map_toggle():
 
 
 @app.route("/turf/<int:id>/")
-def show_turf(id):
+def show_turf(id: ID):
     turf = data["turfs"][id]
 
     phone_key = turf.get("phone_key")
@@ -176,7 +183,7 @@ def show_turf(id):
 
 
 @app.route("/door/<int:id>/")
-def show_door(id):
+def show_door(id: ID):
     door = data["doors"][id]
 
     turf_doors = data["turfs"][door["turf_id"]]["doors"]
@@ -194,7 +201,7 @@ def show_door(id):
 
 
 @app.route("/door/<int:id>/contact/")
-def new_door_contact(id):
+def new_door_contact(id: ID):
     door = data["doors"][id]
 
     new_voter = {
@@ -233,7 +240,7 @@ def new_door_contact(id):
 
 
 @app.route("/voter/<int:id>/")
-def show_voter(id):
+def show_voter(id: ID):
     voter = data["voters"][id]
 
     prev_voter_id = next_voter_id = None
@@ -255,7 +262,7 @@ def show_voter(id):
     )
 
 
-def thing_title(obj, id):
+def thing_title(obj: str, id: ID) -> str:
     if obj == "turf":
         return data["turfs"][id]["desc"]
     elif obj == "door":
@@ -268,7 +275,7 @@ def thing_title(obj, id):
 
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
-def note_obj(typ, id):
+def note_obj(typ: str, id: ID):
     assert typ in ["turf", "door", "voter"]
     obj = data[typ + "s"][id]
     if request.method == "GET":
@@ -295,7 +302,7 @@ def note_obj(typ, id):
 
 
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
-def edit_voter(id):
+def edit_voter(id: ID):
     voter = data["voters"][id]
 
     if request.method == "GET":
