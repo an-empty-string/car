@@ -1,9 +1,10 @@
 import os
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Self, TypeIs, cast
+from typing import Self, cast
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeIs
 
 type ID = int
 
