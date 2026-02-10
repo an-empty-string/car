@@ -30,6 +30,9 @@ class Model(BaseModel):
     def has_id(self) -> bool:
         return self.id_ is not None
 
+    def to_dict(self):
+        return self.model_dump(by_alias=True)
+
 
 class Note(BaseModel):
     note: str
@@ -94,31 +97,7 @@ class Database(BaseModel):
         return self.voters[id].model_copy(deep=True)
 
     def save_voter(self, voter: Voter, *, commit: bool = False) -> Voter:
-        v_prev, v = self._save_model(voter, self.voters)
-
-        # if there's a door ID, add the voter to the door
-        if v.door_id is not None and v.id not in self.doors[v.door_id].voters:
-            if (
-                v_prev is not None
-                and v_prev.door_id is not None
-                and v.id in self.doors[v_prev.door_id].voters
-            ):
-                # and remove them from their old door
-                self.doors[v_prev.door_id].voters.remove(v.id)
-
-            self.doors[v.door_id].voters.append(v.id)
-
-        # if there's a turf ID, add the voter to the turf
-        if v.turf_id is not None and v.id not in self.turfs[v.turf_id].voters:
-            if (
-                v_prev is not None
-                and v_prev.turf_id is not None
-                and v.id in self.turfs[v_prev.turf_id].voters
-            ):
-                # and remove them from their old turf
-                self.turfs[v_prev.turf_id].voters.remove(v.id)
-
-            self.turfs[v.turf_id].voters.append(v.id)
+        v = self._save_model(voter, self.voters)
 
         if commit:
             self.commit()
@@ -128,18 +107,7 @@ class Database(BaseModel):
         return self.doors[id].model_copy(deep=True)
 
     def save_door(self, door: Door, *, commit: bool = False) -> Door:
-        d_prev, d = self._save_model(door, self.doors)
-
-        # if there's a turf ID, add the door to the turf
-        if d.turf_id is not None and d.id not in self.turfs[d.turf_id].doors:
-            if (
-                d_prev is not None
-                and d_prev.turf_id is not None
-                and d.id in self.turfs[d_prev.turf_id].doors
-            ):
-                self.turfs[d_prev.turf_id].doors.remove(d.id)
-
-            self.turfs[d.turf_id].doors.append(d.id)
+        d = self._save_model(door, self.doors)
 
         if commit:
             self.commit()
@@ -149,18 +117,15 @@ class Database(BaseModel):
         return self.turfs[id].model_copy(deep=True)
 
     def save_turf(self, turf: Turf, *, commit: bool = False) -> Turf:
-        _, t = self._save_model(turf, self.turfs)
+        t = self._save_model(turf, self.turfs)
 
         if commit:
             self.commit()
         return t
 
-    def _save_model[T: Model](self, m: T, collection: list[T]) -> tuple[T | None, T]:
-        old_model = None
-
+    def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing
             model_to_update = collection[m.id]
-            old_model = model_to_update.model_copy(deep=True)
             update_data = m.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(model_to_update, key, value)
@@ -174,21 +139,51 @@ class Database(BaseModel):
             model_result = m.with_id(collection[-1].id + 1)
             collection.append(model_result)
 
-        return old_model, model_result.model_copy(deep=True)
+        return model_result.model_copy(deep=True)
 
     def to_json(self):
         return self.model_dump_json(indent=4, by_alias=True)
 
-    def commit(self):
+    def fixup_backrefs(self):
+        def _fixup_one_backref_set(
+            children, child_id_list_attr, parents, parent_id_attr
+        ):
+            # associate children with correct parents
+            for child in children:
+                parent_id = getattr(child, parent_id_attr)
+                if parent_id is None:
+                    continue
+
+                parent = parents[parent_id]
+                child_id_list = getattr(parent, child_id_list_attr)
+                if child.id not in child_id_list:
+                    child_id_list.append(child.id)
+
+            # remove children from incorrect parents
+            for parent in parents:
+                maybe_children = getattr(parent, child_id_list_attr)
+                for child_id in maybe_children.copy():
+                    if getattr(children[child_id], parent_id_attr) != parent.id:
+                        maybe_children.remove(child_id)
+
+        _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
+        _fixup_one_backref_set(self.voters, "voters", self.turfs, "turf_id")
+        _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
+
+    def commit(self, backup=True):
         if any(
             not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)
         ):
             raise AssertionError("frick!! tihs is a bug")
 
+        self.fixup_backrefs()
+
         with open(DATABASE_TMP_FILE, "w") as f:
             f.write(self.to_json())
 
-        os.rename(DATABASE_FILE, f"database-{timestamp()}.json")
+        if backup:
+            os.rename(DATABASE_FILE, f"database-{datetime.now().isoformat()}.json")
+
         os.rename(DATABASE_TMP_FILE, DATABASE_FILE)
 
     @classmethod

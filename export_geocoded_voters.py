@@ -9,7 +9,7 @@ for door in database.doors:
     if not door.has_geocode:
         continue
 
-    door = dict(door)
+    door = door.to_dict()
     door["n_voters"] = len(door.pop("voters"))
     geojson_doors.append(
         {
