@@ -1,9 +1,10 @@
 import os
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Self, TypeIs
+from typing import Self, cast
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeIs
 
 type ID = int
 
@@ -63,8 +64,8 @@ class Door(Model):
 
 
 class _DoorWithGeoCode(Door):
-    lat: float = 0
-    lon: float = 0
+    lat: float = 0  # type: ignore
+    lon: float = 0  # type: ignore
 
 
 def has_geocode(d: Door) -> TypeIs[_DoorWithGeoCode]:
@@ -151,12 +152,17 @@ class Database(BaseModel):
         return self.model_dump_json(indent=4, by_alias=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set(
-            children, child_id_list_attr, parents, parent_id_attr
+        def _fixup_one_backref_set[
+            T: Model, U: Model
+        ](
+            children: list[T],
+            child_id_list_attr: str,
+            parents: list[U],
+            parent_id_attr: str,
         ):
             # associate children with correct parents
             for child in children:
-                parent_id = getattr(child, parent_id_attr)
+                parent_id: ID | None = getattr(child, parent_id_attr)
                 if parent_id is None:
                     continue
 
@@ -169,14 +175,17 @@ class Database(BaseModel):
             for parent in parents:
                 maybe_children = getattr(parent, child_id_list_attr)
                 for child_id in maybe_children.copy():
-                    if getattr(children[child_id], parent_id_attr) != parent.id:
+                    if (
+                        getattr(children[cast(ID, child_id)], parent_id_attr)
+                        != parent.id
+                    ):
                         maybe_children.remove(child_id)
 
         _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
         _fixup_one_backref_set(self.voters, "voters", self.turfs, "turf_id")
         _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
 
-    def commit(self, backup=True):
+    def commit(self, backup: bool = True):
         if any(
             not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)
         ):

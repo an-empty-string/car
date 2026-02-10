@@ -299,6 +299,7 @@ def note_obj(typ: str, id: ID):
         )
         save_data()
         return redirect(url_for(f"show_{typ}", id=id))
+    return "invalid method"
 
 
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
@@ -312,7 +313,7 @@ def edit_voter(id: ID):
         )
 
     elif request.method == "POST":
-        diffs = []
+        diffs: list[tuple[str, str, str | None]] = []
         for (
             field
         ) in "activeinactive firstname middlename lastname cellphone landlinephone bestphone gender race birthdate".split():
@@ -323,7 +324,7 @@ def edit_voter(id: ID):
 
         if diffs:
             rdiffs = {}
-            text = []
+            text: list[str] = []
             for field, old, new in diffs:
                 rdiffs[field] = (old, new)
                 text.append(f"changed {field} from {old!r} to {new!r}.")
