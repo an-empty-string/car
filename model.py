@@ -1,7 +1,7 @@
 import os
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Protocol, Self, TypeGuard, TypeIs
+from typing import Self, TypeIs
 
 from pydantic import BaseModel, Field
 
