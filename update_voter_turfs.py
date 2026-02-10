@@ -5,7 +5,7 @@ import re
 import sqlite3
 import subprocess
 
-from model import Database, Turf, has_geocode
+from model import ID, Database, Turf, has_geocode
 
 TURF_DATA_PATH = os.environ["TURF_DATA_PATH"]
 
@@ -82,11 +82,11 @@ def set_voter_turfs():
 
 
 # routing "algorithm"
-def numpart(x):
+def numpart(x: str) -> str:
     return re.findall("^[0-9]+", x)[0]
 
 
-def score_door(door_id, from_door_id):
+def score_door(door_id: ID, from_door_id: ID) -> float:
     door = database.get_door_by_id(door_id)
     from_door = database.get_door_by_id(from_door_id)
 
@@ -108,7 +108,7 @@ def score_door(door_id, from_door_id):
 
 
 def reorder_doors(turf: Turf):
-    routes = []
+    routes: list[tuple[float, ID, list[ID]]] = []
 
     door_ids = turf.doors
     for start_id in door_ids:
