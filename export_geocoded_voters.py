@@ -1,12 +1,12 @@
 import json
 
-from model import Database
+from model import Database, has_geocode
 
 database = Database.load()
 
 geojson_doors = []
 for door in database.doors:
-    if not door.has_geocode:
+    if not has_geocode(door):
         continue
 
     door = door.to_dict()
