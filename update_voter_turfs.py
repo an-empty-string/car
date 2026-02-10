@@ -91,6 +91,7 @@ def score_door(door_id, from_door_id):
     door = database.get_door_by_id(door_id)
     from_door = database.get_door_by_id(from_door_id)
 
+    # can't use has_geocode because it makes Tris's typechecker upset :<
     assert door.lat is not None and door.lon is not None
     assert from_door.lat is not None and from_door.lon is not None
 
