@@ -18,6 +18,7 @@ def timestamp() -> str:
 class Model(BaseModel):
     id_: ID | None = Field(default=None, alias="_id")
     created_by: str
+    notes: list[Note] = []
 
     @property
     def id(self) -> ID:
@@ -49,7 +50,6 @@ class Turf(Model):
     phone_key: str = ""
     doors: list[ID] = []
     voters: list[ID] = []
-    notes: list[Note] = []
 
 
 class Door(Model):
@@ -85,7 +85,6 @@ class Voter(Model):
     race: str = ""
     birthdate: str = ""
     regdate: str = ""
-    notes: list[Note] = []
     phonebankturf: ID | None = None
     bestphone: str = ""
 
