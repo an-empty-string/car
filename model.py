@@ -1,7 +1,7 @@
 import os
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Self
+from typing import Self, TypeIs
 
 from pydantic import BaseModel, Field
 
@@ -61,9 +61,14 @@ class Door(Model):
     lat: float | None = None
     lon: float | None = None
 
-    @property
-    def has_geocode(self):
-        return self.lat is not None and self.lon is not None
+
+class _DoorWithGeoCode(Door):
+    lat: float = 0
+    lon: float = 0
+
+
+def has_geocode(d: Door) -> TypeIs[_DoorWithGeoCode]:
+    return d.lat is not None and d.lon is not None
 
 
 class Voter(Model):

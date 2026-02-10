@@ -1,7 +1,7 @@
 import os
 import sys
 
-from model import Database
+from model import Database, has_geocode
 
 sys.path.insert(
     0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "../geocode")
@@ -12,7 +12,7 @@ geocoder = get_geocoder()
 database = Database.load()
 
 for door in database.doors:
-    if door.has_geocode:
+    if has_geocode(door):
         continue
 
     result = geocoder.geocode(door.address, door.city)

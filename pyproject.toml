@@ -10,8 +10,8 @@ line-length = 88
 target-version = ['py310']
 
 
-[tool.ruff]
-lint.select = [
+[tool.ruff.lint]
+select = [
     "E",  # pycodestyle errors
     "F",  # pyflakes
     "I",  # isort
