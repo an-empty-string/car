@@ -1,6 +1,4 @@
 # stdlib
-import datetime
-import json
 import os
 import secrets
 from collections.abc import Callable
@@ -19,7 +17,7 @@ from flask import (
 )
 
 # project
-from model import ID
+from model import ID, Database, DatabaseType, Note, Voter, is_valid_type
 
 app = Flask(__name__)
 
@@ -36,19 +34,6 @@ if not os.path.exists("password.txt"):
 
 with open("password.txt") as f:
     password = f.read().strip()
-
-
-with open("database.json") as f:
-    data = json.load(f)
-
-
-def save_data():
-    with open("database-new.json", "w") as f:
-        json.dump(data, f)
-
-    ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    os.rename("database.json", f"database-{ts}.json")
-    os.rename("database-new.json", "database.json")
 
 
 @app.before_request
@@ -80,9 +65,12 @@ def login():
     return redirect(session.pop("return_to", "/"))
 
 
+db = Database.load()
+
+
 @app.context_processor
-def inject_data():
-    return data
+def inject_database():
+    return db.model_dump(by_alias=True)
 
 
 @app.context_processor
@@ -90,12 +78,8 @@ def inject_data_2() -> dict[str, Callable[..., Any]]:
     return {"is_dnc": is_dnc, "reformat_phone": reformat_phone, "tel_uri": tel_uri}
 
 
-def is_dnc(v):
-    for note in v["notes"]:
-        if note["dnc"]:
-            return True
-
-    return False
+def is_dnc(v: Voter):
+    return any(note.dnc for note in v.notes)
 
 
 def reformat_phone(k: str) -> str:
@@ -140,53 +124,54 @@ def map_toggle():
 
 @app.route("/turf/<int:id>/")
 def show_turf(id: ID):
-    turf = data["turfs"][id]
+    turf = db.get_turf_by_id(id)
 
-    phone_key = turf.get("phone_key")
-
-    if not phone_key:
-        geodoors = []
-        for door_id in turf["doors"]:
-            door = data["doors"][door_id]
+    if not turf.phone_key:
+        geodoors: list[dict[str, Any]] = []
+        for door_id in turf.doors:
+            door = db.get_door_by_id(door_id)
             geodoors.append(
                 {
                     "type": "Feature",
                     "geometry": {
                         "type": "Point",
-                        "coordinates": [door["lon"], door["lat"]],
+                        "coordinates": [door.lon, door.lat],
                     },
                     "properties": {
-                        "address": door["address"],
-                        "unit": door["unit"],
-                        "n_voters": len(door["voters"]),
-                        "url": url_for("show_door", id=door["_id"]),
+                        "address": door.address,
+                        "unit": door.unit,
+                        "n_voters": len(door.voters),
+                        "url": url_for("show_door", id=door.id),
                     },
                 }
             )
 
-        geodoors = {
-            "type": "FeatureCollection",
-            "crs": {
-                "type": "name",
-                "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+        return render_template(
+            "turf.html",
+            turf=turf.to_dict(),
+            geodoors={
+                "type": "FeatureCollection",
+                "crs": {
+                    "type": "name",
+                    "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+                },
+                "features": geodoors,
             },
-            "features": geodoors,
-        }
+        )
 
-        return render_template("turf.html", turf=turf, geodoors=geodoors)
-
-    voters = [data["voters"][i] for i in turf["voters"]]
+    voters = [db.get_voter_by_id(i).to_dict() for i in turf.voters]
     # voters = [v for v in voters if phone_key in v and v[phone_key]]
     # voters.sort(key=lambda v: reformat_phone(v[phone_key]))
 
-    return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
+    return render_template("phonebank_turf.html", turf=turf.to_dict(), tvoters=voters)
 
 
 @app.route("/door/<int:id>/")
 def show_door(id: ID):
-    door = data["doors"][id]
-
-    turf_doors = data["turfs"][door["turf_id"]]["doors"]
+    door = db.get_door_by_id(id)
+    if door.turf_id is None:
+        return "no turf associated with door"
+    turf_doors = db.get_turf_by_id(door.turf_id).doors
     idx = turf_doors.index(id)
     prev_door_id = next_door_id = None
 
@@ -196,56 +181,38 @@ def show_door(id: ID):
         next_door_id = turf_doors[idx + 1]
 
     return render_template(
-        "door.html", door=door, prev_door_id=prev_door_id, next_door_id=next_door_id
+        "door.html",
+        door=door.to_dict(),
+        prev_door_id=prev_door_id,
+        next_door_id=next_door_id,
     )
 
 
 @app.route("/door/<int:id>/contact/")
 def new_door_contact(id: ID):
-    door = data["doors"][id]
+    door = db.get_door_by_id(id)
+    new_voter = db.save_voter(
+        Voter(
+            created_by=g.canvasser,
+            firstname="New",
+            lastname="Voter",
+            notes=[Note(author=g.canvasser, system=True, note="created the voter")],
+            door_id=id,
+            turf_id=door.turf_id,
+        ),
+        commit=True,
+    )
 
-    new_voter = {
-        "statevoterid": "",
-        "activeinactive": "",
-        "firstname": "New",
-        "middlename": "",
-        "lastname": "Voter",
-        "cellphone": "",
-        "landlinephone": "",
-        "bestphone": "",
-        "gender": "",
-        "race": "",
-        "birthdate": "",
-        "regdate": "",
-        "_id": len(data["voters"]),
-        "notes": [
-            {
-                "ts": datetime.datetime.now().strftime("%b %d %I:%M%P"),
-                "author": g.canvasser,
-                "system": True,
-                "note": "created the voter",
-                "dnc": False,
-            },
-        ],
-        "created_by": g.canvasser,
-        "door_id": id,
-        "turf_id": door["turf_id"],
-    }
-    data["voters"].append(new_voter)
-    data["turfs"][new_voter["turf_id"]]["voters"].append(new_voter["_id"])
-    data["doors"][id]["voters"].append(new_voter["_id"])
-    save_data()
-
-    return redirect(url_for("edit_voter", id=new_voter["_id"]))
+    return redirect(url_for("edit_voter", id=new_voter.id))
 
 
 @app.route("/voter/<int:id>/")
 def show_voter(id: ID):
-    voter = data["voters"][id]
+    voter = db.get_voter_by_id(id)
 
     prev_voter_id = next_voter_id = None
-    if g.phonebank and "phonebank_turf_id" in voter:
-        turf_voters = data["turfs"][voter["phonebank_turf_id"]]["voters"]
+    if g.phonebank and voter.phonebankturf is not None:
+        turf_voters = db.get_turf_by_id(voter.phonebankturf).voters
         idx = turf_voters.index(id)
         if idx > 0:
             prev_voter_id = turf_voters[idx - 1]
@@ -254,7 +221,7 @@ def show_voter(id: ID):
 
     return render_template(
         "voter.html",
-        voter=voter,
+        voter=voter.to_dict(),
         dnc=is_dnc(voter),
         phonebank=True,
         prev_voter_id=prev_voter_id,
@@ -262,22 +229,21 @@ def show_voter(id: ID):
     )
 
 
-def thing_title(obj: str, id: ID) -> str:
-    if obj == "turf":
-        return data["turfs"][id]["desc"]
-    elif obj == "door":
-        return data["doors"][id]["address"]
-    elif obj == "voter":
-        v = data["voters"][id]
-        return "{firstname} {middlename} {lastname}".format(**v)
+def thing_title(typ: DatabaseType, id: ID) -> str:
+    if typ == "turf":
+        return db.get_turf_by_id(id).desc
+    elif typ == "door":
+        return db.get_door_by_id(id).address
+    elif typ == "voter":
+        v = db.get_voter_by_id(id)
+        return f"{v.firstname} {v.middlename} {v.lastname}"
     else:
         return "frick!! tihs is a bug"
 
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
-    assert typ in ["turf", "door", "voter"]
-    obj = data[typ + "s"][id]
+    assert is_valid_type(typ)
     if request.method == "GET":
         return render_template(
             "take_note.html",
@@ -287,60 +253,53 @@ def note_obj(typ: str, id: ID):
         )
 
     elif request.method == "POST":
-        obj["notes"].insert(
-            0,
-            {
-                "ts": datetime.datetime.now().strftime("%b %d %I:%M%P"),
-                "system": False,
-                "author": g.canvasser,
-                "note": request.form.get("note"),
-                "dnc": True if request.form.get("dnc") else False,
-            },
+        note = Note(
+            author=g.canvasser,
+            note=request.form.get("note", ""),
+            dnc=bool(request.form.get("dnc")),
         )
-        save_data()
+        db.add_notes_for_id(typ, id, note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
     return "invalid method"
 
 
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
 def edit_voter(id: ID):
-    voter = data["voters"][id]
+    voter = db.get_voter_by_id(id)
+    voter_dict = voter.to_dict()
 
     if request.method == "GET":
         return render_template(
             "edit_voter.html",
-            voter=voter,
+            voter=voter_dict,
         )
 
     elif request.method == "POST":
-        diffs: list[tuple[str, str, str | None]] = []
-        for (
-            field
-        ) in "activeinactive firstname middlename lastname cellphone landlinephone bestphone gender race birthdate".split():
-            new = request.form.get(field)
-            if voter[field] != new:
-                diffs.append((field, voter[field], new))
-                voter[field] = new
+        diffs: dict[str, tuple[str, str | None]] = {
+            field: (value, new)
+            for field, value in voter_dict.items()
+            if (new := request.form.get(field)) != value
+        }
 
         if diffs:
-            rdiffs = {}
-            text: list[str] = []
-            for field, old, new in diffs:
-                rdiffs[field] = (old, new)
-                text.append(f"changed {field} from {old!r} to {new!r}.")
-
-            voter["notes"].insert(
-                0,
-                {
-                    "ts": datetime.datetime.now().strftime("%b %d %I:%M%P"),
-                    "author": g.canvasser,
-                    "system": True,
-                    "note": " ".join(text),
-                    "diffs": rdiffs,
-                    "dnc": False,
-                },
+            note = " ".join(
+                f"changed {field} from {old!r} to {new!r}."
+                for field, (old, new) in diffs.items()
             )
-            save_data()
+            updated_voter = voter.model_copy(
+                update={field: new for field, (_, new) in diffs.items()}
+            )
+            updated_voter.notes.insert(
+                0,
+                Note(
+                    author=g.canvasser,
+                    system=True,
+                    note=note,
+                    diffs=diffs,
+                    dnc=False,
+                ),
+            )
+            db.save_voter(updated_voter)
 
     return redirect(url_for("show_voter", id=id))
 

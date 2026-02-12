@@ -1,7 +1,7 @@
 import os
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Self, cast
+from typing import Any, Literal, Self, cast
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypeIs
@@ -16,9 +16,19 @@ def timestamp() -> str:
     return datetime.now().strftime("%b %d %I:%M%P")
 
 
+class Note(BaseModel):
+    note: str
+    author: str | None = None  # username
+    system: bool = False
+    diffs: dict[str, tuple[Any, Any]] = {}  # field -> (old, new)
+    dnc: bool = False
+    ts: str = Field(default_factory=timestamp)
+
+
 class Model(BaseModel):
     id_: ID | None = Field(default=None, alias="_id")
     created_by: str
+    notes: list[Note] = []
 
     @property
     def id(self) -> ID:
@@ -36,21 +46,11 @@ class Model(BaseModel):
         return self.model_dump(by_alias=True)
 
 
-class Note(BaseModel):
-    note: str
-    author: str | None = None  # username
-    system: bool = False
-    diffs: dict[str, tuple[str, str]] = {}  # field -> (old, new)
-    dnc: bool = False
-    ts: str = Field(default_factory=timestamp)
-
-
 class Turf(Model):
     desc: str = ""
     phone_key: str = ""
     doors: list[ID] = []
     voters: list[ID] = []
-    notes: list[Note] = []
 
 
 class Door(Model):
@@ -86,13 +86,19 @@ class Voter(Model):
     race: str = ""
     birthdate: str = ""
     regdate: str = ""
-    notes: list[Note] = []
     phonebankturf: ID | None = None
     bestphone: str = ""
 
 
 def is_valid_ordering(models: Sequence[Model]) -> bool:
     return all(m.id == idx for idx, m in enumerate(models))
+
+
+type DatabaseType = Literal["turf", "door", "voter"]
+
+
+def is_valid_type(typ: str) -> TypeIs[DatabaseType]:
+    return typ in {"turf", "door", "voter"}
 
 
 class Database(BaseModel):
@@ -129,6 +135,21 @@ class Database(BaseModel):
         if commit:
             self.commit()
         return t
+
+    def add_notes_for_id(
+        self, typ: DatabaseType, id: ID, *notes: Note, commit: bool = False
+    ):
+        obj: Model
+        match typ:
+            case "turf":
+                obj = self.turfs[id]
+            case "door":
+                obj = self.doors[id]
+            case "voter":
+                obj = self.voters[id]
+        obj.notes = [*(note.model_copy(deep=True) for note in notes), *obj.notes]
+        if commit:
+            self.commit()
 
     def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing
