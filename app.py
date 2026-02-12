@@ -1,5 +1,4 @@
 # stdlib
-import datetime
 import os
 import secrets
 from collections.abc import Callable
@@ -18,7 +17,7 @@ from flask import (
 )
 
 # project
-from model import ID, Database, Note, Voter
+from model import ID, Database, DatabaseType, Note, Voter, is_valid_type
 
 app = Flask(__name__)
 
@@ -230,12 +229,12 @@ def show_voter(id: ID):
     )
 
 
-def thing_title(obj: str, id: ID) -> str:
-    if obj == "turf":
+def thing_title(typ: DatabaseType, id: ID) -> str:
+    if typ == "turf":
         return db.get_turf_by_id(id).desc
-    elif obj == "door":
+    elif typ == "door":
         return db.get_door_by_id(id).address
-    elif obj == "voter":
+    elif typ == "voter":
         v = db.get_voter_by_id(id)
         return f"{v.firstname} {v.middlename} {v.lastname}"
     else:
@@ -244,8 +243,7 @@ def thing_title(obj: str, id: ID) -> str:
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
-    assert typ in ["turf", "door", "voter"]
-    obj = field_getters[typ](id)
+    assert is_valid_type(typ)
     if request.method == "GET":
         return render_template(
             "take_note.html",
@@ -255,58 +253,53 @@ def note_obj(typ: str, id: ID):
         )
 
     elif request.method == "POST":
-        obj.notes.insert(
-            0,
-            Note(
-                author=g.canvasser,
-                note=request.form.get("note", ""),
-                dnc=bool(request.form.get("dnc")),
-            ),
+        note = Note(
+            author=g.canvasser,
+            note=request.form.get("note", ""),
+            dnc=bool(request.form.get("dnc")),
         )
-        save_data()
+        db.add_notes_for_id(typ, id, note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
     return "invalid method"
 
 
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
 def edit_voter(id: ID):
-    voter = db.get_voter_by_id(id).to_dict()
+    voter = db.get_voter_by_id(id)
+    voter_dict = voter.to_dict()
 
     if request.method == "GET":
         return render_template(
             "edit_voter.html",
-            voter=voter,
+            voter=voter_dict,
         )
 
     elif request.method == "POST":
-        diffs: list[tuple[str, str, str | None]] = []
-        for (
-            field
-        ) in "activeinactive firstname middlename lastname cellphone landlinephone bestphone gender race birthdate".split():
-            new = request.form.get(field)
-            if voter[field] != new:
-                diffs.append((field, voter[field], new))
-                voter[field] = new
+        diffs: dict[str, tuple[str, str | None]] = {
+            field: (value, new)
+            for field, value in voter_dict.items()
+            if (new := request.form.get(field)) != value
+        }
 
         if diffs:
-            rdiffs = {}
-            text: list[str] = []
-            for field, old, new in diffs:
-                rdiffs[field] = (old, new)
-                text.append(f"changed {field} from {old!r} to {new!r}.")
-
-            voter["notes"].insert(
-                0,
-                {
-                    "ts": datetime.datetime.now().strftime("%b %d %I:%M%P"),
-                    "author": g.canvasser,
-                    "system": True,
-                    "note": " ".join(text),
-                    "diffs": rdiffs,
-                    "dnc": False,
-                },
+            note = " ".join(
+                f"changed {field} from {old!r} to {new!r}."
+                for field, (old, new) in diffs.items()
             )
-            save_data()
+            updated_voter = voter.model_copy(
+                update={field: new for field, (_, new) in diffs.items()}
+            )
+            updated_voter.notes.insert(
+                0,
+                Note(
+                    author=g.canvasser,
+                    system=True,
+                    note=note,
+                    diffs=diffs,
+                    dnc=False,
+                ),
+            )
+            db.save_voter(updated_voter)
 
     return redirect(url_for("show_voter", id=id))
 
