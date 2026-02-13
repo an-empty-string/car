@@ -70,7 +70,6 @@ def inject_data_2() -> dict[str, Callable[..., Any]]:
 
 
 def is_dnc(v: Voter):
-    print("is_dnc called", v)
     return any(note.dnc for note in v.notes)
 
 
@@ -280,12 +279,9 @@ def edit_voter(id: ID):
                 f"changed {field} from {old!r} to {new!r}."
                 for field, (old, new) in diffs.items()
             )
-            print("VOTER", voter)
-            print("DIFFS", diffs)
             updated_voter = voter.model_copy(
                 update={field: new for field, (_, new) in diffs.items()}
             )
-            print("UPDATED VOTER", updated_voter)
             updated_voter.notes.insert(
                 0,
                 Note(
@@ -296,7 +292,6 @@ def edit_voter(id: ID):
                     dnc=False,
                 ),
             )
-            print("UPDATED VOTER 2", updated_voter)
             db.save_voter(updated_voter, commit=True)
 
     return redirect(url_for("show_voter", id=id))
