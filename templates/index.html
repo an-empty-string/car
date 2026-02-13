@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Turfs</h1>
 <ul class="secretly-a-table">
-    {% for turf in turfs %}
+    {% for turf in db.turfs %}
     <li><a href="{{ url_for('show_turf', id=loop.index0) }}">{{ turf.desc }}</a></li>
     {% endfor %}
 </ul>

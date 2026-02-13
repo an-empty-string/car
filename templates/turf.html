@@ -3,7 +3,8 @@
 {% block content %}
 <h1>{{ turf.desc }}</h1>
 <!--
-https://www.google.com/maps/dir/{% for door in turf.doors %}{{ doors[door].address + ' ' + doors[door].city + ' AL'|urlencode }}/{% endfor %}
+https://www.google.com/maps/dir/
+{% for door_id in turf.doors %}{% with door = db.get_door_by_id(door_id) %}{{ door.address + ' ' + door.city + ' AL'|urlencode }}{% endwith %}/{% endfor %}
 -->
 
 {% if session.use_map|default(True) %}
