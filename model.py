@@ -155,8 +155,9 @@ class Database(BaseModel):
         if m.has_id():  # update existing
             model_to_update = collection[m.id]
             update_data = m.model_dump(exclude_unset=True)
-            for key, value in update_data.items():
-                setattr(model_to_update, key, value)
+            for key in update_data:
+                setattr(model_to_update, key, getattr(m, key))
+
             model_result = model_to_update
 
         elif not collection:  # first model

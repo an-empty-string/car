@@ -5,16 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 # 3p
-from flask import (
-    Flask,
-    abort,
-    g,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
 # project
 from model import ID, Database, DatabaseType, Note, Voter, is_valid_type
@@ -70,7 +61,7 @@ db = Database.load()
 
 @app.context_processor
 def inject_database():
-    return db.model_dump(by_alias=True)
+    return {"db": db}
 
 
 @app.context_processor
@@ -79,6 +70,7 @@ def inject_data_2() -> dict[str, Callable[..., Any]]:
 
 
 def is_dnc(v: Voter):
+    print("is_dnc called", v)
     return any(note.dnc for note in v.notes)
 
 
@@ -279,6 +271,8 @@ def edit_voter(id: ID):
             field: (value, new)
             for field, value in voter_dict.items()
             if (new := request.form.get(field)) != value
+            and new is not None
+            and field not in ("notes",)
         }
 
         if diffs:
@@ -286,9 +280,12 @@ def edit_voter(id: ID):
                 f"changed {field} from {old!r} to {new!r}."
                 for field, (old, new) in diffs.items()
             )
+            print("VOTER", voter)
+            print("DIFFS", diffs)
             updated_voter = voter.model_copy(
                 update={field: new for field, (_, new) in diffs.items()}
             )
+            print("UPDATED VOTER", updated_voter)
             updated_voter.notes.insert(
                 0,
                 Note(
@@ -299,7 +296,8 @@ def edit_voter(id: ID):
                     dnc=False,
                 ),
             )
-            db.save_voter(updated_voter)
+            print("UPDATED VOTER 2", updated_voter)
+            db.save_voter(updated_voter, commit=True)
 
     return redirect(url_for("show_voter", id=id))
 

@@ -18,7 +18,7 @@
 {% endmacro %}
 
 {% macro turf_link(t) %}
-{% with turf = turfs[t] %}
+{% with turf = db.get_turf_by_id(t) %}
 <a href="{{ url_for('show_turf', id=t) }}">
     turf
 </a>
@@ -26,7 +26,7 @@
 {% endmacro %}
 
 {% macro door_link(d) %}
-{% with door = doors[d] %}
+{% with door = db.get_door_by_id(d) %}
 <a href="{{ url_for('show_door', id=d) }}">
     {{ door.address }}
 </a>
@@ -34,7 +34,7 @@
 {% endmacro %}
 
 {% macro voter_link(v) %}
-{% with voter = voters[v] %}
+{% with voter = db.get_voter_by_id(v) %}
 <a href="{{ url_for('show_voter', id=v) }}">
     {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}
     {% if is_dnc(voter) %}<span class="important">(do not contact)</span>{% endif %}
