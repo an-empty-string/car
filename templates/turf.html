@@ -14,7 +14,7 @@ https://www.google.com/maps/dir/
 <h2>🛢️ Doors</h2>
 <ul class="secretly-a-table">
     {% for door in turf.doors %}
-    <li>{{ door_link(door) }}</li>
+    <li>{{ door_link(door, turf) }}</li>
     {% endfor %}
 </ul>
 <h2>📝 Notes</h2>

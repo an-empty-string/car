@@ -69,9 +69,14 @@
             });
         </script>
     </div>
+
     <div class="form-field">
-        <label for="dnc">Mark as do not contact</label>
-        <input name="dnc" id="dnc" type="checkbox" />
+        <label for="disposition">Disposition</label>
+        <select name="disposition" id="disposition">
+            {% for key, label in dispositions.items() if key in type_dispositions.voter %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+        </select>
     </div>
     {% endif %}
     <button type="submit">Add note</button>

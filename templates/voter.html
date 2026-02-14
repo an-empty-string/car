@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Voter: {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}{% endblock %}
 {% block content %}
-{% if dnc %}
-<div class="big important">
-    !!! do not contact !!!
-</div>
-{% endif %}
 <nav>
     <ul id="door-crumbs">
         {% if g.phonebank and prev_voter_id %}

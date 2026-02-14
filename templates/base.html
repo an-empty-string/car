@@ -4,12 +4,24 @@
     {% for note in x.notes %}
     <li>
         {{ note.author }}, {{ note.ts }}: <em>{{ note.note }}</em>
-        {% if note.dnc %}<span class="important">(marked do not contact)</span>{% endif %}
+        {% if note.disposition %}
+        <span class="disposition">({{ dispositions[note.disposition] }})</span>
+        {% endif %}
     </li>
     {% endfor %}
 </ul>
 {% else %}
 <p>no notes!</p>
+{% endif %}
+{% endmacro %}
+
+{% macro render_disposition(turf, typ, id) %}
+{% if turf %}
+{% with d = db.get_disposition_for_type_and_id(typ, id, turf) %}
+{% if d %}
+<span class="disposition">({{ dispositions[d] }})</span>
+{% endif %}
+{% endwith %}
 {% endif %}
 {% endmacro %}
 
@@ -25,19 +37,21 @@
 {% endwith %}
 {% endmacro %}
 
-{% macro door_link(d) %}
-{% with door = db.get_door_by_id(d) %}
-<a href="{{ url_for('show_door', id=d) }}">
+{% macro door_link(d, turf=None) %}
+{% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, turf) %}
+<a href="{{ url_for('show_door', id=d) }}" data-disposition="{{ disp }}">
     {{ door.address }}
+
+    {% if disp %}<span class="disposition">({{ dispositions[disp] }})</span>{% endif %}
 </a>
 {% endwith %}
 {% endmacro %}
 
-{% macro voter_link(v) %}
+{% macro voter_link(v, turf=None) %}
 {% with voter = db.get_voter_by_id(v) %}
 <a href="{{ url_for('show_voter', id=v) }}">
     {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}
-    {% if is_dnc(voter) %}<span class="important">(do not contact)</span>{% endif %}
+    {{ render_disposition(turf, "voter", v) }}
 </a>
 {% endwith %}
 {% endmacro %}

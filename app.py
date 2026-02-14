@@ -8,7 +8,19 @@ from typing import Any, cast
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
 # project
-from model import ID, Database, Door, Model, Note, Turf, Voter, is_valid_type
+from model import (
+    DISPOSITIONS,
+    ID,
+    TYPE_DISPOSITIONS,
+    Database,
+    Door,
+    Model,
+    Note,
+    Turf,
+    Voter,
+    is_valid_disposition,
+    is_valid_type,
+)
 
 app = Flask(__name__)
 
@@ -65,12 +77,19 @@ def inject_database():
 
 
 @app.context_processor
-def inject_data_2() -> dict[str, Callable[..., Any]]:
-    return {"is_dnc": is_dnc, "reformat_phone": reformat_phone, "tel_uri": tel_uri}
+def inject_funcs() -> dict[str, Callable[..., Any]]:
+    return {
+        "reformat_phone": reformat_phone,
+        "tel_uri": tel_uri,
+    }
 
 
-def is_dnc(v: Voter):
-    return any(note.dnc for note in v.notes)
+@app.context_processor
+def inject_constants() -> dict[str, Any]:
+    return {
+        "dispositions": DISPOSITIONS,
+        "type_dispositions": TYPE_DISPOSITIONS,
+    }
 
 
 def reformat_phone(k: str) -> str:
@@ -215,7 +234,6 @@ def show_voter(id: ID):
     return render_template(
         "voter.html",
         voter=voter,
-        dnc=is_dnc(voter),
         phonebank=True,
         prev_voter_id=prev_voter_id,
         next_voter_id=next_voter_id,
@@ -230,8 +248,6 @@ def thing_title(model: Model) -> str:
     elif model.TYPE == "voter":
         v = cast(Voter, model)
         return f"{v.firstname} {v.middlename} {v.lastname}"
-    else:
-        return "frick!! tihs is a bug"
 
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
@@ -247,10 +263,14 @@ def note_obj(typ: str, id: ID):
         )
 
     elif request.method == "POST":
+        disposition = request.form.get("disposition")
+        if not is_valid_disposition(disposition):
+            abort(400)
+
         note = Note(
             author=g.canvasser,
             note=request.form.get("note", ""),
-            dnc=bool(request.form.get("dnc")),
+            disposition=disposition,
         )
         obj.add_note(note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
@@ -293,7 +313,6 @@ def edit_voter(id: ID):
                     system=True,
                     note=note,
                     diffs=diffs,
-                    dnc=False,
                 ),
                 commit=True,
             )

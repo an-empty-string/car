@@ -8,10 +8,40 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeIs
 
 type ID = int
+type Disposition = (
+    Literal[
+        "attempted",
+        "refused",
+        "do-not-contact",
+        "followup",
+        "in-progress",
+        "done",
+    ]
+    | None
+)
+
+DISPOSITIONS = {
+    None: "-",
+    "attempted": "Attempted, voter not reached",
+    "refused": "Voter refused conversation",
+    "do-not-contact": "Marked as do-not-contact",
+    "followup": "Flagged for follow-up",
+    "in-progress": "In progress",
+    "done": "Done",
+}
+TYPE_DISPOSITIONS = {
+    "door": [None, "attempted"],
+    "voter": [None, "refused", "do-not-contact", "followup", "done"],
+    "turf": [None, "in-progress", "done"],
+}
+
+
+def is_valid_disposition(x: str | None) -> TypeIs[Disposition]:
+    return x in DISPOSITIONS
 
 
 def timestamp() -> str:
-    return datetime.now().strftime("%b %d %I:%M%P")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 type DatabaseType = Literal["turf", "door", "voter"]
@@ -86,8 +116,14 @@ class Note(BaseModel):
     author: str | None = None  # username
     system: bool = False
     diffs: Mapping[str, tuple[Any, Any]] = {}  # field -> (old, new)
-    dnc: bool = False
+    disposition: Disposition = None
     ts: str = Field(default_factory=timestamp)
+
+    def has_refusal_disposition(self):
+        return self.disposition in (
+            "refused",
+            "do-not-contact",
+        )
 
 
 class NoteDatabase(BaseDatabase):
@@ -124,6 +160,18 @@ class Model(BaseModel):
     def has_id(self) -> bool:
         return self.id_ is not None
 
+    def last_disposition(
+        self, after: str | None = None, default: Disposition = None
+    ) -> Disposition:
+        notes = [n for n in self.notes if n.disposition is not None]
+        if after is not None:
+            notes = [n for n in notes if (n.ts > after or n.has_refusal_disposition())]
+
+        if notes:
+            return notes[-1].disposition
+
+        return default
+
     def to_dict(self):
         return self.model_dump(by_alias=True)
 
@@ -146,6 +194,11 @@ class Turf(Model):
     doors: list[ID] = []
     voters: list[ID] = []
 
+    def started_at(self) -> str | None:
+        for note in reversed(self.notes):
+            if note.disposition == "in-progress":
+                return note.ts
+
 
 class Door(Model):
     TYPE: ClassVar[DatabaseType] = "door"
@@ -157,6 +210,21 @@ class Door(Model):
     voters: list[ID] = []
     lat: float | None = None
     lon: float | None = None
+
+    def last_disposition_with_voters(
+        self, voters: list["Voter"], after=None
+    ) -> Disposition:
+        for voter in voters:
+            if disposition := voter.last_disposition(after):
+                if disposition == "followup":
+                    return "done"
+
+                return disposition
+
+        if self.last_disposition(after) == "attempted":
+            return "attempted"
+
+        return None
 
 
 class _DoorWithGeoCode(Door):
@@ -232,6 +300,25 @@ class Database(BaseDatabase):
             self.commit()
         return t
 
+    def get_disposition_for_type_and_id(
+        self, typ: DatabaseType, id: ID, turf: Turf | None = None
+    ) -> Disposition:
+        after = None
+        if turf:
+            after = turf.started_at()
+
+        match typ:
+            case "turf":
+                return self.get_turf_by_id(id).last_disposition()
+            case "door":
+                door = self.get_door_by_id(id)
+                voters = [self.get_voter_by_id(v_id) for v_id in door.voters]
+
+                return door.last_disposition_with_voters(voters, after)
+            case "voter":
+                voter = self.get_voter_by_id(id)
+                return voter.last_disposition(after)
+
     def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing
             model_to_update = collection[m.id]
@@ -251,9 +338,7 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[
-            T: Model, U: Model
-        ](
+        def _fixup_one_backref_set[T: Model, U: Model](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],

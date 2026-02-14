@@ -73,9 +73,23 @@ ul#door-crumbs {
 ul#door-crumbs * {
     text-align:center;
 }
-ul#door-crumbs :first-child  {
+ul#door-crumbs :first-child {
     text-align:left;
 }
 ul#door-crumbs :last-child {
     text-align:right;
+}
+
+/* dispositions */
+a[data-disposition="done"] {
+    color: gray;
+    text-decoration: line-through;
+}
+
+a[data-disposition="do-not-contact"], a[data-disposition="refused"] {
+    color: red;
+}
+
+span.disposition {
+    font-size: 80%;
 }
