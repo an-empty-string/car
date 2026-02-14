@@ -47,8 +47,8 @@
     {% if voter.cellphone %}{{ sms_link(voter.cellphone) }}{% endif %}
 {% endif %}
 
-<a href="{{ url_for('edit_voter', id=voter._id) }}"><button>edit this voter</button></a>
+<a href="{{ url_for('edit_voter', id=voter.id) }}"><button>edit this voter</button></a>
 <h2>🗒️ Notes</h2>
 {{ render_notes(voter) }}
-{{ note_link("voter", voter._id) }}
+{{ note_link("voter", voter.id) }}
 {% endblock %}

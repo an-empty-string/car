@@ -139,7 +139,7 @@ def show_turf(id: ID):
 
         return render_template(
             "turf.html",
-            turf=turf.to_dict(),
+            turf=turf,
             geodoors={
                 "type": "FeatureCollection",
                 "crs": {
@@ -150,11 +150,11 @@ def show_turf(id: ID):
             },
         )
 
-    voters = [db.get_voter_by_id(i).to_dict() for i in turf.voters]
+    voters = list(map(db.get_voter_by_id, turf.voters))
     # voters = [v for v in voters if phone_key in v and v[phone_key]]
     # voters.sort(key=lambda v: reformat_phone(v[phone_key]))
 
-    return render_template("phonebank_turf.html", turf=turf.to_dict(), tvoters=voters)
+    return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
 
 
 @app.route("/door/<int:id>/")
@@ -173,7 +173,7 @@ def show_door(id: ID):
 
     return render_template(
         "door.html",
-        door=door.to_dict(),
+        door=door,
         prev_door_id=prev_door_id,
         next_door_id=next_door_id,
     )
@@ -214,7 +214,7 @@ def show_voter(id: ID):
 
     return render_template(
         "voter.html",
-        voter=voter.to_dict(),
+        voter=voter,
         dnc=is_dnc(voter),
         phonebank=True,
         prev_voter_id=prev_voter_id,
@@ -260,18 +260,17 @@ def note_obj(typ: str, id: ID):
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
 def edit_voter(id: ID):
     voter = db.get_voter_by_id(id)
-    voter_dict = voter.to_dict()
 
     if request.method == "GET":
         return render_template(
             "edit_voter.html",
-            voter=voter_dict,
+            voter=voter,
         )
 
     elif request.method == "POST":
         diffs: dict[str, tuple[str, str | None]] = {
             field: (value, new)
-            for field, value in voter_dict.items()
+            for field, value in voter.to_dict().items()
             if (new := request.form.get(field)) != value
             and new is not None
             and field not in ("notes",)

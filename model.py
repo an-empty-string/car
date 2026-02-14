@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, ClassVar, Literal, Self, cast
@@ -22,6 +23,7 @@ def is_valid_type(typ: str) -> TypeIs[DatabaseType]:
 
 class BaseDatabase(BaseModel):
     DATABASE_FILE_NAME: ClassVar[str]
+    SHOULD_CREATE: ClassVar[bool] = False
     _INSTANCE: ClassVar[Self]
 
     def assert_constraints(self):
@@ -67,6 +69,12 @@ class BaseDatabase(BaseModel):
 
     @classmethod
     def _load(cls) -> Self:
+        file = cls.db_file()
+        if cls.SHOULD_CREATE and not os.path.exists(file):
+            empty = "{}"
+            with open(file, "w") as f:
+                f.write(empty)
+            return cls.model_validate_json(empty)
         with open(cls.db_file()) as f:
             return cls.model_validate_json(f.read())
 
@@ -84,10 +92,11 @@ class Note(BaseModel):
 
 class NoteDatabase(BaseDatabase):
     DATABASE_FILE_NAME: ClassVar[str] = "note-database"
+    SHOULD_CREATE: ClassVar[bool] = True
 
-    turf: dict[ID, list[Note]] = {}
-    door: dict[ID, list[Note]] = {}
-    voter: dict[ID, list[Note]] = {}
+    turf: defaultdict[ID, list[Note]] = defaultdict(list)
+    door: defaultdict[ID, list[Note]] = defaultdict(list)
+    voter: defaultdict[ID, list[Note]] = defaultdict(list)
 
     def by_type_and_id(self, typ: DatabaseType, id: ID) -> Sequence[Note]:
         """We explicitly return a Sequence instead of a list
