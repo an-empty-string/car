@@ -154,9 +154,8 @@ class Database(BaseModel):
     def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing
             model_to_update = collection[m.id]
-            update_data = m.model_dump(exclude_unset=True)
-            for key in update_data:
-                setattr(model_to_update, key, getattr(m, key))
+            for field in m.model_fields_set:
+                setattr(model_to_update, field, getattr(m, field))
 
             model_result = model_to_update
 
