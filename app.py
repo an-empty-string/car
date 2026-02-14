@@ -277,15 +277,15 @@ def edit_voter(id: ID):
         }
 
         if diffs:
-            note = " ".join(
-                f"changed {field} from {old!r} to {new!r}."
-                for field, (old, new) in diffs.items()
-            )
             updated_voter = db.save_voter(
                 voter.model_copy(
                     update={field: new for field, (_, new) in diffs.items()}
                 ),
                 commit=True,
+            )
+            note = " ".join(
+                f"changed {field} from {old!r} to {new!r}."
+                for field, (old, new) in diffs.items()
             )
             updated_voter.add_note(
                 Note(
