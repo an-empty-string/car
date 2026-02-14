@@ -2,13 +2,13 @@
 import os
 import secrets
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 # 3p
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
 # project
-from model import ID, Database, DatabaseType, Note, Voter, is_valid_type
+from model import ID, Database, Door, Model, Note, Turf, Voter, is_valid_type
 
 app = Flask(__name__)
 
@@ -56,7 +56,7 @@ def login():
     return redirect(session.pop("return_to", "/"))
 
 
-db = Database.load()
+db = Database.get()
 
 
 @app.context_processor
@@ -187,11 +187,13 @@ def new_door_contact(id: ID):
             created_by=g.canvasser,
             firstname="New",
             lastname="Voter",
-            notes=[Note(author=g.canvasser, system=True, note="created the voter")],
             door_id=id,
             turf_id=door.turf_id,
         ),
         commit=True,
+    )
+    new_voter.add_note(
+        Note(author=g.canvasser, system=True, note="created the voter"), commit=True
     )
 
     return redirect(url_for("edit_voter", id=new_voter.id))
@@ -220,13 +222,13 @@ def show_voter(id: ID):
     )
 
 
-def thing_title(typ: DatabaseType, id: ID) -> str:
-    if typ == "turf":
-        return db.get_turf_by_id(id).desc
-    elif typ == "door":
-        return db.get_door_by_id(id).address
-    elif typ == "voter":
-        v = db.get_voter_by_id(id)
+def thing_title(model: Model) -> str:
+    if model.TYPE == "turf":
+        return cast(Turf, model).desc
+    elif model.TYPE == "door":
+        return cast(Door, model).address
+    elif model.TYPE == "voter":
+        v = cast(Voter, model)
         return f"{v.firstname} {v.middlename} {v.lastname}"
     else:
         return "frick!! tihs is a bug"
@@ -235,11 +237,12 @@ def thing_title(typ: DatabaseType, id: ID) -> str:
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
     assert is_valid_type(typ)
+    obj = db.get_by_type_and_id(typ, id)
     if request.method == "GET":
         return render_template(
             "take_note.html",
             typ=typ,
-            title=thing_title(typ, id),
+            title=thing_title(obj),
             link=url_for(f"show_{typ}", id=id),
         )
 
@@ -249,7 +252,7 @@ def note_obj(typ: str, id: ID):
             note=request.form.get("note", ""),
             dnc=bool(request.form.get("dnc")),
         )
-        db.add_notes_for_id(typ, id, note, commit=True)
+        obj.add_note(note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
     return "invalid method"
 
@@ -279,11 +282,13 @@ def edit_voter(id: ID):
                 f"changed {field} from {old!r} to {new!r}."
                 for field, (old, new) in diffs.items()
             )
-            updated_voter = voter.model_copy(
-                update={field: new for field, (_, new) in diffs.items()}
+            updated_voter = db.save_voter(
+                voter.model_copy(
+                    update={field: new for field, (_, new) in diffs.items()}
+                ),
+                commit=True,
             )
-            updated_voter.notes.insert(
-                0,
+            updated_voter.add_note(
                 Note(
                     author=g.canvasser,
                     system=True,
@@ -291,8 +296,8 @@ def edit_voter(id: ID):
                     diffs=diffs,
                     dnc=False,
                 ),
+                commit=True,
             )
-            db.save_voter(updated_voter, commit=True)
 
     return redirect(url_for("show_voter", id=id))
 

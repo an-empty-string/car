@@ -42,6 +42,9 @@ class BaseDatabase(BaseModel):
     def db_commit_file(cls):
         return f"{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json"
 
+    def to_json(self):
+        return self.model_dump_json(indent=4, by_alias=True)
+
     def commit(self, backup: bool = True):
         self.assert_constraints()
         self.fixup_backrefs()
@@ -86,13 +89,13 @@ class NoteDatabase(BaseDatabase):
     door: dict[ID, list[Note]] = {}
     voter: dict[ID, list[Note]] = {}
 
-    def by_type_and_id(self, typ: DatabaseType, id_: ID) -> Sequence[Note]:
+    def by_type_and_id(self, typ: DatabaseType, id: ID) -> Sequence[Note]:
         """We explicitly return a Sequence instead of a list
         for immutability without copying to a tuple"""
-        return getattr(self, typ)[id_]
+        return getattr(self, typ)[id]
 
-    def add(self, typ: DatabaseType, id_: ID, note: Note):
-        getattr(self, typ)[id_].insert(0, note)
+    def add(self, typ: DatabaseType, id: ID, note: Note):
+        getattr(self, typ)[id].insert(0, note)
 
 
 class Model(BaseModel):
@@ -116,11 +119,14 @@ class Model(BaseModel):
         return self.model_dump(by_alias=True)
 
     @property
-    def notes(self) -> list[Note]:
+    def notes(self) -> Sequence[Note]:
         return NoteDatabase.get().by_type_and_id(self.TYPE, self.id)
 
-    def add_note(self, note: Note):
-        NoteDatabase.get().add(self.TYPE, self.id, note)
+    def add_note(self, note: Note, *, commit: bool = False):
+        db = NoteDatabase.get()
+        db.add(self.TYPE, self.id, note)
+        if commit:
+            db.commit()
 
 
 class Turf(Model):
@@ -184,6 +190,9 @@ class Database(BaseDatabase):
     doors: list[Door] = []
     voters: list[Voter] = []
 
+    def get_by_type_and_id(self, typ: DatabaseType, id: ID) -> Model:
+        return getattr(self, typ + "s")[id].model_copy(deep=True)
+
     def get_voter_by_id(self, id: ID) -> Voter:
         return self.voters[id].model_copy(deep=True)
 
@@ -214,21 +223,6 @@ class Database(BaseDatabase):
             self.commit()
         return t
 
-    def add_notes_for_id(
-        self, typ: DatabaseType, id: ID, *notes: Note, commit: bool = False
-    ):
-        obj: Model
-        match typ:
-            case "turf":
-                obj = self.turfs[id]
-            case "door":
-                obj = self.doors[id]
-            case "voter":
-                obj = self.voters[id]
-        obj.notes = [*(note.model_copy(deep=True) for note in notes), *obj.notes]
-        if commit:
-            self.commit()
-
     def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing
             model_to_update = collection[m.id]
@@ -246,9 +240,6 @@ class Database(BaseDatabase):
             collection.append(model_result)
 
         return model_result.model_copy(deep=True)
-
-    def to_json(self):
-        return self.model_dump_json(indent=4, by_alias=True)
 
     def fixup_backrefs(self):
         def _fixup_one_backref_set[

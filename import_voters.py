@@ -1,6 +1,6 @@
 import csv
 
-from model import DATABASE_FILE, Database, Door, Turf, Voter
+from model import Database, Door, Turf, Voter
 
 VOTER_FILE = "SOSVoterList_20230708_6344.csv"
 
@@ -78,5 +78,4 @@ for line in lines:
         )
     )
 
-with open(DATABASE_FILE, "w") as f:
-    f.write(database.to_json())
+database.commit(backup=False)
