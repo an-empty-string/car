@@ -19,7 +19,7 @@ https://www.google.com/maps/dir/
 </ul>
 <h2>📝 Notes</h2>
 {{ render_notes(turf) }}
-{{ note_link("turf", turf._id) }}
+{{ note_link("turf", turf.id) }}
 
 {% if session.use_map|default(True) %}
 <script>

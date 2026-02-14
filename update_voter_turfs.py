@@ -9,7 +9,7 @@ from model import ID, Database, Turf, has_geocode
 
 TURF_DATA_PATH = os.environ["TURF_DATA_PATH"]
 
-database = Database.load()
+database = Database.get()
 
 
 def sync_turf_props():

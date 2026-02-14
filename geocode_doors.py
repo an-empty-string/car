@@ -9,7 +9,7 @@ sys.path.insert(
 from geocode import get_geocoder  # pyright: ignore
 
 geocoder = get_geocoder()
-database = Database.load()
+database = Database.get()
 
 for door in database.doors:
     if has_geocode(door):

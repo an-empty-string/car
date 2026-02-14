@@ -1,10 +1,11 @@
 import json
+from typing import Any
 
 from model import Database, has_geocode
 
-database = Database.load()
+database = Database.get()
 
-geojson_doors = []
+geojson_doors: list[dict[str, Any]] = []
 for door in database.doors:
     if not has_geocode(door):
         continue

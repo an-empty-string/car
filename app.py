@@ -2,13 +2,13 @@
 import os
 import secrets
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 # 3p
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
 # project
-from model import ID, Database, DatabaseType, Note, Voter, is_valid_type
+from model import ID, Database, Door, Model, Note, Turf, Voter, is_valid_type
 
 app = Flask(__name__)
 
@@ -56,7 +56,7 @@ def login():
     return redirect(session.pop("return_to", "/"))
 
 
-db = Database.load()
+db = Database.get()
 
 
 @app.context_processor
@@ -139,7 +139,7 @@ def show_turf(id: ID):
 
         return render_template(
             "turf.html",
-            turf=turf.to_dict(),
+            turf=turf,
             geodoors={
                 "type": "FeatureCollection",
                 "crs": {
@@ -150,11 +150,11 @@ def show_turf(id: ID):
             },
         )
 
-    voters = [db.get_voter_by_id(i).to_dict() for i in turf.voters]
+    voters = list(map(db.get_voter_by_id, turf.voters))
     # voters = [v for v in voters if phone_key in v and v[phone_key]]
     # voters.sort(key=lambda v: reformat_phone(v[phone_key]))
 
-    return render_template("phonebank_turf.html", turf=turf.to_dict(), tvoters=voters)
+    return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
 
 
 @app.route("/door/<int:id>/")
@@ -173,7 +173,7 @@ def show_door(id: ID):
 
     return render_template(
         "door.html",
-        door=door.to_dict(),
+        door=door,
         prev_door_id=prev_door_id,
         next_door_id=next_door_id,
     )
@@ -187,11 +187,13 @@ def new_door_contact(id: ID):
             created_by=g.canvasser,
             firstname="New",
             lastname="Voter",
-            notes=[Note(author=g.canvasser, system=True, note="created the voter")],
             door_id=id,
             turf_id=door.turf_id,
         ),
         commit=True,
+    )
+    new_voter.add_note(
+        Note(author=g.canvasser, system=True, note="created the voter"), commit=True
     )
 
     return redirect(url_for("edit_voter", id=new_voter.id))
@@ -212,7 +214,7 @@ def show_voter(id: ID):
 
     return render_template(
         "voter.html",
-        voter=voter.to_dict(),
+        voter=voter,
         dnc=is_dnc(voter),
         phonebank=True,
         prev_voter_id=prev_voter_id,
@@ -220,13 +222,13 @@ def show_voter(id: ID):
     )
 
 
-def thing_title(typ: DatabaseType, id: ID) -> str:
-    if typ == "turf":
-        return db.get_turf_by_id(id).desc
-    elif typ == "door":
-        return db.get_door_by_id(id).address
-    elif typ == "voter":
-        v = db.get_voter_by_id(id)
+def thing_title(model: Model) -> str:
+    if model.TYPE == "turf":
+        return cast(Turf, model).desc
+    elif model.TYPE == "door":
+        return cast(Door, model).address
+    elif model.TYPE == "voter":
+        v = cast(Voter, model)
         return f"{v.firstname} {v.middlename} {v.lastname}"
     else:
         return "frick!! tihs is a bug"
@@ -235,11 +237,12 @@ def thing_title(typ: DatabaseType, id: ID) -> str:
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
     assert is_valid_type(typ)
+    obj = db.get_by_type_and_id(typ, id)
     if request.method == "GET":
         return render_template(
             "take_note.html",
             typ=typ,
-            title=thing_title(typ, id),
+            title=thing_title(obj),
             link=url_for(f"show_{typ}", id=id),
         )
 
@@ -249,7 +252,7 @@ def note_obj(typ: str, id: ID):
             note=request.form.get("note", ""),
             dnc=bool(request.form.get("dnc")),
         )
-        db.add_notes_for_id(typ, id, note, commit=True)
+        obj.add_note(note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
     return "invalid method"
 
@@ -257,33 +260,34 @@ def note_obj(typ: str, id: ID):
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
 def edit_voter(id: ID):
     voter = db.get_voter_by_id(id)
-    voter_dict = voter.to_dict()
 
     if request.method == "GET":
         return render_template(
             "edit_voter.html",
-            voter=voter_dict,
+            voter=voter,
         )
 
     elif request.method == "POST":
         diffs: dict[str, tuple[str, str | None]] = {
             field: (value, new)
-            for field, value in voter_dict.items()
+            for field, value in voter.to_dict().items()
             if (new := request.form.get(field)) != value
             and new is not None
             and field not in ("notes",)
         }
 
         if diffs:
+            updated_voter = db.save_voter(
+                voter.model_copy(
+                    update={field: new for field, (_, new) in diffs.items()}
+                ),
+                commit=True,
+            )
             note = " ".join(
                 f"changed {field} from {old!r} to {new!r}."
                 for field, (old, new) in diffs.items()
             )
-            updated_voter = voter.model_copy(
-                update={field: new for field, (_, new) in diffs.items()}
-            )
-            updated_voter.notes.insert(
-                0,
+            updated_voter.add_note(
                 Note(
                     author=g.canvasser,
                     system=True,
@@ -291,8 +295,8 @@ def edit_voter(id: ID):
                     diffs=diffs,
                     dnc=False,
                 ),
+                commit=True,
             )
-            db.save_voter(updated_voter, commit=True)
 
     return redirect(url_for("show_voter", id=id))
 
