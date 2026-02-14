@@ -141,5 +141,6 @@ def reorder_all_doors():
 if __name__ == "__main__":
     sync_turf_props()
     set_voter_turfs()
+    database.fixup_backrefs()
     reorder_all_doors()
     database.commit()
