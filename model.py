@@ -1,34 +1,104 @@
 import os
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, Self, cast
+from typing import Any, ClassVar, Literal, Self, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeIs
 
 type ID = int
-
-DATABASE_FILE = "database.json"
-DATABASE_TMP_FILE = "database-new.json"
 
 
 def timestamp() -> str:
     return datetime.now().strftime("%b %d %I:%M%P")
 
 
+type DatabaseType = Literal["turf", "door", "voter"]
+
+
+def is_valid_type(typ: str) -> TypeIs[DatabaseType]:
+    return typ in {"turf", "door", "voter"}
+
+
+class BaseDatabase(BaseModel):
+    DATABASE_FILE_NAME: ClassVar[str]
+    _INSTANCE: ClassVar[Self]
+
+    def assert_constraints(self):
+        pass
+
+    def fixup_backrefs(self):
+        pass
+
+    @classmethod
+    def db_file(cls):
+        return f"{cls.DATABASE_FILE_NAME}.json"
+
+    @classmethod
+    def db_temp_file(cls):
+        return f"{cls.DATABASE_FILE_NAME}-new.json"
+
+    @classmethod
+    def db_commit_file(cls):
+        return f"{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json"
+
+    def commit(self, backup: bool = True):
+        self.assert_constraints()
+        self.fixup_backrefs()
+
+        with open(self.db_temp_file(), "w") as f:
+            f.write(self.to_json())
+
+        if backup:
+            os.rename(self.db_file(), self.db_commit_file())
+
+        os.rename(self.db_temp_file(), self.db_file())
+
+    @classmethod
+    def get(cls) -> Self:
+        try:
+            return cls._INSTANCE
+        except AttributeError:
+            cls._INSTANCE = cls._load()
+            return cls._INSTANCE
+
+    @classmethod
+    def _load(cls) -> Self:
+        with open(cls.db_file()) as f:
+            return cls.model_validate_json(f.read())
+
+
 class Note(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     note: str
     author: str | None = None  # username
     system: bool = False
-    diffs: dict[str, tuple[Any, Any]] = {}  # field -> (old, new)
+    diffs: Mapping[str, tuple[Any, Any]] = {}  # field -> (old, new)
     dnc: bool = False
     ts: str = Field(default_factory=timestamp)
 
 
+class NoteDatabase(BaseDatabase):
+    DATABASE_FILE_NAME: ClassVar[str] = "note-database"
+
+    turf: dict[ID, list[Note]] = {}
+    door: dict[ID, list[Note]] = {}
+    voter: dict[ID, list[Note]] = {}
+
+    def by_type_and_id(self, typ: DatabaseType, id_: ID) -> Sequence[Note]:
+        """We explicitly return a Sequence instead of a list
+        for immutability without copying to a tuple"""
+        return getattr(self, typ)[id_]
+
+    def add(self, typ: DatabaseType, id_: ID, note: Note):
+        getattr(self, typ)[id_].insert(0, note)
+
+
 class Model(BaseModel):
+    TYPE: ClassVar[DatabaseType]
     id_: ID | None = Field(default=None, alias="_id")
     created_by: str
-    notes: list[Note] = []
 
     @property
     def id(self) -> ID:
@@ -45,8 +115,17 @@ class Model(BaseModel):
     def to_dict(self):
         return self.model_dump(by_alias=True)
 
+    @property
+    def notes(self) -> list[Note]:
+        return NoteDatabase.get().by_type_and_id(self.TYPE, self.id)
+
+    def add_note(self, note: Note):
+        NoteDatabase.get().add(self.TYPE, self.id, note)
+
 
 class Turf(Model):
+    TYPE: ClassVar[DatabaseType] = "turf"
+
     desc: str = ""
     phone_key: str = ""
     doors: list[ID] = []
@@ -54,6 +133,8 @@ class Turf(Model):
 
 
 class Door(Model):
+    TYPE: ClassVar[DatabaseType] = "door"
+
     turf_id: ID | None = None
     address: str = ""
     unit: str = ""
@@ -73,6 +154,8 @@ def has_geocode(d: Door) -> TypeIs[_DoorWithGeoCode]:
 
 
 class Voter(Model):
+    TYPE: ClassVar[DatabaseType] = "voter"
+
     door_id: ID | None = None
     turf_id: ID | None = None
     statevoterid: str = ""
@@ -94,14 +177,9 @@ def is_valid_ordering(models: Sequence[Model]) -> bool:
     return all(m.id == idx for idx, m in enumerate(models))
 
 
-type DatabaseType = Literal["turf", "door", "voter"]
+class Database(BaseDatabase):
+    DATABASE_FILE_NAME: ClassVar[str] = "database"
 
-
-def is_valid_type(typ: str) -> TypeIs[DatabaseType]:
-    return typ in {"turf", "door", "voter"}
-
-
-class Database(BaseModel):
     turfs: list[Turf] = []
     doors: list[Door] = []
     voters: list[Voter] = []
@@ -206,23 +284,8 @@ class Database(BaseModel):
         _fixup_one_backref_set(self.voters, "voters", self.turfs, "turf_id")
         _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
 
-    def commit(self, backup: bool = True):
+    def assert_constraints(self):
         if any(
             not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)
         ):
             raise AssertionError("frick!! tihs is a bug")
-
-        self.fixup_backrefs()
-
-        with open(DATABASE_TMP_FILE, "w") as f:
-            f.write(self.to_json())
-
-        if backup:
-            os.rename(DATABASE_FILE, f"database-{datetime.now().isoformat()}.json")
-
-        os.rename(DATABASE_TMP_FILE, DATABASE_FILE)
-
-    @classmethod
-    def load(cls):
-        with open(DATABASE_FILE) as f:
-            return cls.model_validate_json(f.read())
