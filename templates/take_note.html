@@ -69,9 +69,14 @@
             });
         </script>
     </div>
+
     <div class="form-field">
-        <label for="dnc">Mark as do not contact</label>
-        <input name="dnc" id="dnc" type="checkbox" />
+        {% for key, label in dispositions.items() if key in type_dispositions.voter %}
+        {% if key is none %}{% set label = "No disposition" %}{% endif %}
+        <input id="disp-{{ key }}" type="radio" name="disposition" value="{{ key }}" {% if key == "done" %}checked{% endif %}>
+        <label for="disp-{{ key }}">{{ label }}</label>
+        <br />
+        {% endfor %}
     </div>
     {% endif %}
     <button type="submit">Add note</button>

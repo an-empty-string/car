@@ -7,8 +7,22 @@ from typing import Any, cast
 # 3p
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
+import utils
+
 # project
-from model import ID, Database, Door, Model, Note, Turf, Voter, is_valid_type
+from model import (
+    DISPOSITIONS,
+    ID,
+    TYPE_DISPOSITIONS,
+    Database,
+    Door,
+    Model,
+    Note,
+    Turf,
+    Voter,
+    is_valid_disposition,
+    is_valid_type,
+)
 
 app = Flask(__name__)
 
@@ -65,12 +79,20 @@ def inject_database():
 
 
 @app.context_processor
-def inject_data_2() -> dict[str, Callable[..., Any]]:
-    return {"is_dnc": is_dnc, "reformat_phone": reformat_phone, "tel_uri": tel_uri}
+def inject_funcs() -> dict[str, Callable[..., Any]]:
+    return {
+        "reformat_phone": reformat_phone,
+        "tel_uri": tel_uri,
+        "time_taken": utils.time_taken,
+    }
 
 
-def is_dnc(v: Voter):
-    return any(note.dnc for note in v.notes)
+@app.context_processor
+def inject_constants() -> dict[str, Any]:
+    return {
+        "dispositions": DISPOSITIONS,
+        "type_dispositions": TYPE_DISPOSITIONS,
+    }
 
 
 def reformat_phone(k: str) -> str:
@@ -157,6 +179,38 @@ def show_turf(id: ID):
     return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
 
 
+@app.route("/turf/<int:id>/start/")
+def start_turf(id):
+    turf = db.get_turf_by_id(id)
+    turf.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            note="started the turf",
+            disposition="in-progress",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_turf", id=id))
+
+
+@app.route("/turf/<int:id>/finish/")
+def finish_turf(id):
+    turf = db.get_turf_by_id(id)
+    turf.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            note="finished the turf",
+            disposition="done",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_turf", id=id))
+
+
 @app.route("/door/<int:id>/")
 def show_door(id: ID):
     door = db.get_door_by_id(id)
@@ -199,6 +253,38 @@ def new_door_contact(id: ID):
     return redirect(url_for("edit_voter", id=new_voter.id))
 
 
+@app.route("/door/<int:id>/attempted/")
+def door_attempt(id: ID):
+    door = db.get_door_by_id(id)
+    door.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            disposition="attempted",
+            note="knocked, no response",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_door", id=id))
+
+
+@app.route("/door/<int:id>/do-not-knock/")
+def door_dnk(id: ID):
+    door = db.get_door_by_id(id)
+    door.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            disposition="do-not-contact",
+            note="marked do-not-knock",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_door", id=id))
+
+
 @app.route("/voter/<int:id>/")
 def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
@@ -215,7 +301,6 @@ def show_voter(id: ID):
     return render_template(
         "voter.html",
         voter=voter,
-        dnc=is_dnc(voter),
         phonebank=True,
         prev_voter_id=prev_voter_id,
         next_voter_id=next_voter_id,
@@ -230,8 +315,8 @@ def thing_title(model: Model) -> str:
     elif model.TYPE == "voter":
         v = cast(Voter, model)
         return f"{v.firstname} {v.middlename} {v.lastname}"
-    else:
-        return "frick!! tihs is a bug"
+
+    return "(no title)"
 
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
@@ -247,10 +332,14 @@ def note_obj(typ: str, id: ID):
         )
 
     elif request.method == "POST":
+        disposition = request.form.get("disposition")
+        if not is_valid_disposition(disposition):
+            abort(400)
+
         note = Note(
             author=g.canvasser,
             note=request.form.get("note", ""),
-            dnc=bool(request.form.get("dnc")),
+            disposition=disposition,
         )
         obj.add_note(note, commit=True)
         return redirect(url_for(f"show_{typ}", id=id))
@@ -293,7 +382,6 @@ def edit_voter(id: ID):
                     system=True,
                     note=note,
                     diffs=diffs,
-                    dnc=False,
                 ),
                 commit=True,
             )
