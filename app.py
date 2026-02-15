@@ -316,6 +316,8 @@ def thing_title(model: Model) -> str:
         v = cast(Voter, model)
         return f"{v.firstname} {v.middlename} {v.lastname}"
 
+    return "(no title)"
+
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
