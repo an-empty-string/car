@@ -71,12 +71,12 @@
     </div>
 
     <div class="form-field">
-        <label for="disposition">Disposition</label>
-        <select name="disposition" id="disposition">
-            {% for key, label in dispositions.items() if key in type_dispositions.voter %}
-            <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
-        </select>
+        {% for key, label in dispositions.items() if key in type_dispositions.voter %}
+        {% if key is none %}{% set label = "No disposition" %}{% endif %}
+        <input id="disp-{{ key }}" type="radio" name="disposition" value="{{ key }}" {% if key == "done" %}checked{% endif %}>
+        <label for="disp-{{ key }}">{{ label }}</label>
+        <br />
+        {% endfor %}
     </div>
     {% endif %}
     <button type="submit">Add note</button>

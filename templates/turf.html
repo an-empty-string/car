@@ -7,11 +7,21 @@ https://www.google.com/maps/dir/
 {% for door_id in turf.doors %}{% with door = db.get_door_by_id(door_id) %}{{ door.address + ' ' + door.city + ' AL'|urlencode }}{% endwith %}/{% endfor %}
 -->
 
+{% with turf_disposition, disposition_note = turf.last_disposition_with_note() %}
+{% if turf_disposition is none %}
+<p>Turf not started yet! &middot; <a href="{{ url_for('start_turf', id=turf.id) }}">Claim and start turf</a></p>
+{% elif turf_disposition == "in-progress" %}
+<p>Turf in progress, claimed by <strong>{{ disposition_note.author }}</strong> {{ render_time_since(disposition_note.ts) }} &middot; <a href="{{ url_for('finish_turf', id=turf.id) }}" onclick="return confirm('Are you sure you want to mark the turf as finished? Next time you start the turf, the status of all doors and voters will be reset.')">Mark turf finished</a></p>
+{% elif turf_disposition == "done" %}
+<p>Turf finished by <strong>{{ disposition_note.author }}</strong> at {{ disposition_note.ts }} &middot; <a href="{{ url_for('start_turf', id=turf.id) }}">Claim and start turf</a></p>
+{% endif %}
+{% endwith %}
+
 {% if session.use_map|default(True) %}
 <div id="map" style="height: 50vh;"></div>
 {% endif %}
 
-<h2>🛢️ Doors</h2>
+<h2>🚪 Doors</h2>
 <ul class="secretly-a-table">
     {% for door in turf.doors %}
     <li>{{ door_link(door, turf) }}</li>

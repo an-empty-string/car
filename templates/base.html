@@ -15,18 +15,14 @@
 {% endif %}
 {% endmacro %}
 
-{% macro render_disposition(turf, typ, id) %}
-{% if turf %}
-{% with d = db.get_disposition_for_type_and_id(typ, id, turf) %}
+{% macro render_disposition(d) %}
 {% if d %}
 <span class="disposition">({{ dispositions[d] }})</span>
 {% endif %}
-{% endwith %}
-{% endif %}
 {% endmacro %}
 
-{% macro note_link(typ, id) %}
-<a href="{{ url_for('note_obj', typ=typ, id=id) }}"><button>add new note</button></a>
+{% macro note_link(typ, id, text="add new note") %}
+<a href="{{ url_for('note_obj', typ=typ, id=id) }}"><button>{{ text }}</button></a>
 {% endmacro %}
 
 {% macro turf_link(t) %}
@@ -39,21 +35,27 @@
 
 {% macro door_link(d, turf=None) %}
 {% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, turf) %}
-<a href="{{ url_for('show_door', id=d) }}" data-disposition="{{ disp }}">
+<a href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
     {{ door.address }}
 
-    {% if disp %}<span class="disposition">({{ dispositions[disp] }})</span>{% endif %}
+    {% if turf and disp %}<span class="disposition">({{ dispositions[disp] }})</span>{% endif %}
 </a>
 {% endwith %}
 {% endmacro %}
 
 {% macro voter_link(v, turf=None) %}
 {% with voter = db.get_voter_by_id(v) %}
-<a href="{{ url_for('show_voter', id=v) }}">
+{% with d = db.get_disposition_for_type_and_id("voter", v, turf) %}
+<a href="{{ url_for('show_voter', id=v) }}" data-disposition="{{ d }}">
     {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}
-    {{ render_disposition(turf, "voter", v) }}
+    {{ render_disposition(d) }}
 </a>
 {% endwith %}
+{% endwith %}
+{% endmacro %}
+
+{% macro render_time_since(start) %}
+<span style="text-decoration: underline dotted;" title="{{ start }}">{{ time_taken(start, None) }} ago</span>
 {% endmacro %}
 
 {% macro phone_link(x, p) %}

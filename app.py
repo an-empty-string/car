@@ -7,6 +7,8 @@ from typing import Any, cast
 # 3p
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
 
+import utils
+
 # project
 from model import (
     DISPOSITIONS,
@@ -81,6 +83,7 @@ def inject_funcs() -> dict[str, Callable[..., Any]]:
     return {
         "reformat_phone": reformat_phone,
         "tel_uri": tel_uri,
+        "time_taken": utils.time_taken,
     }
 
 
@@ -176,6 +179,38 @@ def show_turf(id: ID):
     return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
 
 
+@app.route("/turf/<int:id>/start/")
+def start_turf(id):
+    turf = db.get_turf_by_id(id)
+    turf.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            note="started the turf",
+            disposition="in-progress",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_turf", id=id))
+
+
+@app.route("/turf/<int:id>/finish/")
+def finish_turf(id):
+    turf = db.get_turf_by_id(id)
+    turf.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            note="finished the turf",
+            disposition="done",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_turf", id=id))
+
+
 @app.route("/door/<int:id>/")
 def show_door(id: ID):
     door = db.get_door_by_id(id)
@@ -216,6 +251,38 @@ def new_door_contact(id: ID):
     )
 
     return redirect(url_for("edit_voter", id=new_voter.id))
+
+
+@app.route("/door/<int:id>/attempted/")
+def door_attempt(id: ID):
+    door = db.get_door_by_id(id)
+    door.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            disposition="attempted",
+            note="knocked, no response",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_door", id=id))
+
+
+@app.route("/door/<int:id>/do-not-knock/")
+def door_dnk(id: ID):
+    door = db.get_door_by_id(id)
+    door.add_note(
+        Note(
+            author=g.canvasser,
+            system=True,
+            disposition="do-not-contact",
+            note="marked do-not-knock",
+        ),
+        commit=True,
+    )
+
+    return redirect(url_for("show_door", id=id))
 
 
 @app.route("/voter/<int:id>/")

@@ -160,17 +160,24 @@ class Model(BaseModel):
     def has_id(self) -> bool:
         return self.id_ is not None
 
-    def last_disposition(
+    def last_disposition_with_note(
         self, after: str | None = None, default: Disposition = None
-    ) -> Disposition:
+    ) -> tuple[Disposition, Note | None]:
         notes = [n for n in self.notes if n.disposition is not None]
+        notes.sort(key=lambda k: k.ts)
         if after is not None:
             notes = [n for n in notes if (n.ts > after or n.has_refusal_disposition())]
 
         if notes:
-            return notes[-1].disposition
+            return notes[-1].disposition, notes[-1]
 
-        return default
+        return default, None
+
+    def last_disposition(
+        self, after: str | None = None, default: Disposition = None
+    ) -> Disposition:
+        disposition, _ = self.last_disposition_with_note(after, default)
+        return disposition
 
     def to_dict(self):
         return self.model_dump(by_alias=True)
@@ -195,7 +202,7 @@ class Turf(Model):
     voters: list[ID] = []
 
     def started_at(self) -> str | None:
-        for note in reversed(self.notes):
+        for note in sorted(self.notes, key=lambda k: k.ts, reverse=True):
             if note.disposition == "in-progress":
                 return note.ts
 
@@ -214,6 +221,9 @@ class Door(Model):
     def last_disposition_with_voters(
         self, voters: list["Voter"], after=None
     ) -> Disposition:
+        if self.last_disposition() == "do-not-contact":
+            return "do-not-contact"
+
         for voter in voters:
             if disposition := voter.last_disposition(after):
                 if disposition == "followup":
@@ -254,6 +264,16 @@ class Voter(Model):
     regdate: str = ""
     phonebankturf: ID | None = None
     bestphone: str = ""
+
+    def age(self):
+        try:
+            years = (
+                datetime.now() - datetime.strptime(self.birthdate, "%Y-%m-%d")
+            ).days / 365
+            return int(years)
+
+        except Exception:
+            return 0
 
 
 def is_valid_ordering(models: Sequence[Model]) -> bool:
@@ -338,7 +358,9 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[T: Model, U: Model](
+        def _fixup_one_backref_set[
+            T: Model, U: Model
+        ](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],

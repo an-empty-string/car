@@ -23,15 +23,25 @@
     </ul>
 </nav>
 <h1>{{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}</h1>
+
+{{ note_link("voter", voter.id, text="log conversation") }}
+
 <div>
     <strong>Registration status:</strong>
     {% if voter.activeinactive == "A" %}
-    Active voter registration :D
+    Active voter registration
     {% elif voter.activeinactive == "I" %}
     <strong>Inactive voter registration</strong> &mdash; have them reregister to vote?
     {% else %}
     Unknown voter registration status &mdash; have them register to vote?
     {% endif %}
+</div>
+
+<div>
+    <strong>Demographics from Secretary of State:</strong>
+    About {{ voter.age() }} years old,
+    {% if voter.gender == "M" %}male{% elif voter.gender == "F" %}female{% elif voter.gender == "X" %}nonbinary{% else %}unknown gender{% endif %},
+    {% if voter.race == "W" %}White{% elif voter.race == "B" %}Black{% elif voter.race == "H" %}Hispanic{% elif voter.race == "A" %}Asian{% elif voter.race == "O" %}Other race{% else %}Unknown race{% endif %}
 </div>
 
 {% if g.phonebank %}
@@ -42,8 +52,9 @@
     {% if voter.cellphone %}{{ sms_link(voter.cellphone) }}{% endif %}
 {% endif %}
 
-<a href="{{ url_for('edit_voter', id=voter.id) }}"><button>edit this voter</button></a>
-<h2>🗒️ Notes</h2>
+<h2>🗒️ Conversations</h2>
 {{ render_notes(voter) }}
-{{ note_link("voter", voter.id) }}
+
+<h2>🔧 Data admin</h2>
+<a href="{{ url_for('edit_voter', id=voter.id) }}"><button>edit this voter</button></a>
 {% endblock %}

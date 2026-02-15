@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Door: {{ door.address }}{% endblock %}
 {% block content %}
+{% set turf = db.get_turf_by_id(door.turf_id) %}
+
 <nav>
     <ul id="door-crumbs">
         {% if prev_door_id %}
@@ -16,14 +18,29 @@
 </nav>
 <h1><a target="_blank" href="https://maps.google.com/?q={{ ('directions to ' + door.address + ' ' + door.city + ' AL') | urlencode }}">{{ door.address }}</a></h1>
 
+{% with disposition = db.get_disposition_for_type_and_id("door", door.id) %}
+{% if disposition == "do-not-contact" %}
+<div class="dnc-warning">This door is flagged as "do-not-knock." Do not knock at this door unless you know what you are doing!</div>
+{% elif disposition == "refused" %}
+<div class="dnc-warning">A voter has recently refused contact at this address</div>
+{% endif %}
+{% endwith %}
+
 <h2>👨 Voters</h2>
 <ul class="secretly-a-table">
     {% for id in door.voters %}
-    <li>{{ voter_link(id) }}</li>
+    {% with voter = db.get_voter_by_id(id) %}
+    <li>{{ voter_link(id, turf) }} (~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }})</li>
+    {% endwith %}
     {% endfor %}
 </ul>
 <a href="{{ url_for('new_door_contact', id=door.id) }}"><button>add voter</button></a>
 <h2>🗒️ Notes</h2>
 {{ render_notes(door) }}
+
+<a href="{{ url_for('door_attempt', id=door.id) }}"><button>knocked/no response</button></a>
+<a href="{{ url_for('door_dnk', id=door.id) }}" onclick="return confirm('Are you sure you want to mark this door as unsafe/do-not-knock? All canvassers will see this information, and it is difficult to remove.')">
+    <button>mark unsafe/do-not-knock</button>
+</a>
 {{ note_link("door", door.id) }}
 {% endblock %}
