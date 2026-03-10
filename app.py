@@ -64,7 +64,9 @@ def before_request():
     c = session.get("canvasser")
     if c:
         g.canvasser = c
-    elif request.endpoint not in {"login", "static"}:
+    elif request.endpoint not in {"login", "static"} and not request.path.startswith(
+        "/login/"
+    ):
         if "favicon" in request.url:
             abort(404)
 
@@ -77,7 +79,7 @@ def before_request():
 def login(login_code=None):
     if request.method == "GET":
         # Allow logins by URL immediately if we are already logged in
-        if login_code is None or "canvasser" not in session:
+        if login_code is not None or "canvasser" not in session:
             return render_template("login.html", login_code=login_code)
 
         pw = login_code
