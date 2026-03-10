@@ -21,5 +21,7 @@ select = [
     "UP", # pyupgrade
     "B",  # flake8-bugbear
 ]
-# ignore line length in the linter since the formatter already does enough
-ignore = ["E501"]
+ignore = [
+    "E501",  # line length - the formatter already does enough
+    "B019",  # functools.cache in scripts
+]
