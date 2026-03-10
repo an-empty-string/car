@@ -23,14 +23,15 @@
 
   const getDispositionColor = (disposition) => {
     return {
-        "attempted": 'yellow',
-        "refused": 'red',
-        "do-not-contact": 'red',
-        "followup": 'green',
-        "in-progress": 'grey',
-        "done": 'white',
-    }[disposition] ?? 'blue'
-  }
+      attempted: 'yellow',
+      refused: 'red',
+      'do-not-contact': 'red',
+      followup: 'green',
+      'in-progress': 'grey',
+      done: 'white',
+    }[disposition] ?? 'blue';
+  };
+
 
   const layer = L.geoJSON(geoturfs, {
     style: ({properties}) => {
