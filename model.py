@@ -20,7 +20,7 @@ type Disposition = (
     | None
 )
 
-DISPOSITIONS = {
+DISPOSITIONS: dict[str | None, str] = {
     None: "-",
     "attempted": "Attempted, voter not reached",
     "refused": "Voter refused conversation",
@@ -29,7 +29,7 @@ DISPOSITIONS = {
     "in-progress": "In progress",
     "done": "Done",
 }
-TYPE_DISPOSITIONS = {
+TYPE_DISPOSITIONS: dict[str, list[str | None]] = {
     "door": [None, "attempted"],
     "voter": [None, "refused", "do-not-contact", "followup", "done"],
     "turf": [None, "in-progress", "done"],
@@ -219,7 +219,7 @@ class Door(Model):
     lon: float | None = None
 
     def last_disposition_with_voters(
-        self, voters: list["Voter"], after=None
+        self, voters: list["Voter"], after: str | None = None
     ) -> Disposition:
         if self.last_disposition() == "do-not-contact":
             return "do-not-contact"
@@ -358,9 +358,7 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[
-            T: Model, U: Model
-        ](
+        def _fixup_one_backref_set[T: Model, U: Model](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],

@@ -1,11 +1,12 @@
-{% extends "base.html" %}
-{% block title %}Turfs{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Turfs{% endblock %} {% block content %}
 <h1>Turfs</h1>
 <ul class="secretly-a-table">
-    {% for turf in db.turfs %}
-    <li><a href="{{ url_for('show_turf', id=loop.index0) }}">{{ turf.desc }}</a></li>
-    {% endfor %}
+  {% for turf in db.turfs %}
+  <li>
+    <a href="{{ url_for('show_turf', id=loop.index0) }}">{{ turf.desc }}</a>
+    ({{turf.doors|length}} Doors, {{turf.voters|length}} Voters)
+  </li>
+  {% endfor %}
 </ul>
 <!-- <p style="font-size: 4pt;">hunter bullied me into making an index page lol</p> -->
 {% endblock %}
