@@ -2,7 +2,7 @@ import csv
 
 from model import Database, Door, Turf, Voter
 
-VOTER_FILE = "SOSVoterList_20230708_6344.csv"
+VOTER_FILE = "demprimaryvoters.csv"
 
 
 with open(VOTER_FILE) as f:

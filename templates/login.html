@@ -3,13 +3,16 @@
 {% block content %}
 <h1>Login</h1>
 <form method="post">
+    {% if not session.canvasser %}
     <div class="form-field">
         <label for="canvasser">Your name</label>
         <input type="text" name="canvasser" id="canvasser" autofocus />
     </div>
+    {% endif %}
+
     <div class="form-field">
-        <label for="password">Campaign password</label>
-        <input type="text" name="password" id="password" />
+        <label for="password">Turf code {% if admin %}(or campaign admin password){% endif %}</label>
+        <input type="text" {% if not admin %}inputmode="numeric" {% endif %}name="password" id="password" {% if login_code %}value="{{ login_code }}"{% endif %}/>
     </div>
     <button type="submit">Login</button>
 </form>

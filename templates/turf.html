@@ -2,6 +2,7 @@
 {% block title %}Turf: {{ turf.desc }}{% endblock %}
 {% block content %}
 <h1>{{ turf.desc }}</h1>
+<span class="turf-code">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
 <!--
 https://www.google.com/maps/dir/
 {% for door_id in turf.doors %}{% with door = db.get_door_by_id(door_id) %}{{ door.address + ' ' + door.city + ' AL'|urlencode }}{% endwith %}/{% endfor %}

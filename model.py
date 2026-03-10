@@ -196,6 +196,7 @@ class Turf(Model):
 
     desc: str = ""
     phone_key: str = ""
+    login_code: str = ""
     doors: list[ID] = []
     voters: list[ID] = []
 
@@ -356,7 +357,9 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[T: Model, U: Model](
+        def _fixup_one_backref_set[
+            T: Model, U: Model
+        ](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],

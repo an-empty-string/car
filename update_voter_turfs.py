@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import csv
 import os
+import random
 import re
 import sqlite3
 import subprocess
@@ -110,6 +111,10 @@ def score_door(door_id: ID, from_door_id: ID) -> float:
 def reorder_doors(turf: Turf):
     routes: list[tuple[float, ID, list[ID]]] = []
 
+    if turf.id == 0:
+        # "All Voters" default turf
+        return
+
     door_ids = turf.doors
     for start_id in door_ids:
         q = door_ids.copy()
@@ -138,9 +143,19 @@ def reorder_all_doors():
         database.save_turf(turf)
 
 
+def assign_login_codes():
+    for turf in database.turfs:
+        if turf.login_code:
+            continue
+
+        turf.login_code = "".join([str(random.randint(1, 9)) for x in range(10)])
+        database.save_turf(turf)
+
+
 if __name__ == "__main__":
     sync_turf_props()
     set_voter_turfs()
     database.fixup_backrefs()
     reorder_all_doors()
+    assign_login_codes()
     database.commit()

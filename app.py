@@ -6,7 +6,17 @@ from collections.abc import Callable
 from typing import Any, cast
 
 # 3p
-from flask import Flask, abort, g, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 import utils
 
@@ -63,15 +73,58 @@ def before_request():
 
 
 @app.route("/login/", methods=["GET", "POST"])
-def login():
+@app.route("/login/<login_code>/", methods=["GET"])
+def login(login_code=None):
     if request.method == "GET":
-        return render_template("login.html")
+        # Allow logins by URL immediately if we are already logged in
+        if login_code is None or "canvasser" not in session:
+            return render_template("login.html", login_code=login_code)
 
-    if request.form.get("password") != password:
-        return "wrong password, <a href=/login>try again</a>"
+        pw = login_code
 
-    session["canvasser"] = request.form.get("canvasser")
+    else:
+        pw = request.form.get("password").strip()
+
+    session["admin"] = False
+
+    if request.form.get("password") == password:
+        # Used the admin password
+        session["admin"] = True
+        session["turfs"] = []
+
+    else:
+        # Try finding the turf by login code
+        pw = "".join([i for i in pw if i.isnumeric()])
+        for turf in db.turfs:
+            if turf.login_code == pw:
+                break
+
+        else:
+            flash("No such turf code! Try again.")
+            return render_template("login.html")
+
+        if "turfs" not in session:
+            session["turfs"] = []
+
+        if turf.id not in session["turfs"]:
+            session["turfs"].append(turf.id)
+            flash(f"Added turf {turf.desc}!")
+
+        else:
+            flash("Turf already on list.")
+
+    if "canvasser" not in session:
+        session["canvasser"] = request.form.get("canvasser")
+
     return redirect(session.pop("return_to", "/"))
+
+
+@app.route("/logout/")
+def logout():
+    session.clear()
+
+    flash("Logged out!")
+    return redirect(url_for("login"))
 
 
 db = Database.get()
@@ -111,6 +164,9 @@ def tel_uri(k: str, tel: str = "tel") -> str:
 
 @app.route("/")
 def index():
+    if not session["admin"] and len(session["turfs"]) == 1:
+        return redirect(url_for("show_turf", id=session["turfs"][0]))
+
     return render_template(
         "index.html",
         geoturfs=geoturfs,
