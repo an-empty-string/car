@@ -18,11 +18,28 @@
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
+  const geoturfs = {{geoturfs | tojson}};
   const turfs = {{turf_data | tojson}};
 
-  const layer = L.geoJSON({{geoturfs | tojson}}, {
-    onEachFeature: ({properties}, layer) => {
-      layer.bindPopup(`<a href="/turf/${properties.car_id}">${properties.name}</a><br>${turfs[properties.car_id].doors} door(s), ${turfs[properties.car_id].voters} voter(s)`);
+  const getDispositionColor = (disposition) => {
+    return {
+        "attempted": 'yellow',
+        "refused": 'red',
+        "do-not-contact": 'red',
+        "followup": 'green',
+        "in-progress": 'grey',
+        "done": 'white',
+    }[disposition] ?? 'blue'
+  }
+
+  const layer = L.geoJSON(geoturfs, {
+    style: ({properties}) => {
+        return {color: getDispositionColor(turfs[properties.car_id].disposition)};
+    },
+    onEachFeature: ({properties: {car_id: turf_id, name}}, layer) => {
+      layer.bindPopup(`<a href="/turf/${turf_id}">${name}</a>
+      <br>${turfs[turf_id].disposition?turfs[turf_id].disposition_name:'Not Started'}
+      <br>${turfs[turf_id].doors} door(s), ${turfs[turf_id].voters} voter(s)`);
     },
   });
 

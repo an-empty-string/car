@@ -114,7 +114,15 @@ def index():
     return render_template(
         "index.html",
         geoturfs=geoturfs,
-        turf_data=[{"doors": len(t.doors), "voters": len(t.voters)} for t in db.turfs],
+        turf_data=[
+            {
+                "doors": len(t.doors),
+                "voters": len(t.voters),
+                "disposition": t.last_disposition(),
+                "disposition_name": DISPOSITIONS[t.last_disposition()],
+            }
+            for t in db.turfs
+        ],
     )
 
 

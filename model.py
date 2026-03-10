@@ -8,17 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeIs
 
 type ID = int
-type Disposition = (
-    Literal[
-        "attempted",
-        "refused",
-        "do-not-contact",
-        "followup",
-        "in-progress",
-        "done",
-    ]
-    | None
-)
+type Disposition = Literal[
+    "attempted",
+    "refused",
+    "do-not-contact",
+    "followup",
+    "in-progress",
+    "done",
+    None,
+]
 
 DISPOSITIONS: dict[str | None, str] = {
     None: "-",
