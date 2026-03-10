@@ -4,9 +4,35 @@
   {% for turf in db.turfs %}
   <li>
     <a href="{{ url_for('show_turf', id=loop.index0) }}">{{ turf.desc }}</a>
-    ({{turf.doors|length}} Doors, {{turf.voters|length}} Voters)
+    ({{turf.doors | length}} Doors, {{turf.voters | length}} Voters)
   </li>
   {% endfor %}
 </ul>
+
+{% if session.use_map|default(True) %}
+<div id="map" style="height: 50vh"></div>
+<script>
+  const map = L.map('map').setView([33.53, -86.81], 11);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(map);
+
+  const turfs = {{turf_data | tojson}};
+
+  const layer = L.geoJSON({{geoturfs | tojson}}, {
+    onEachFeature: ({properties}, layer) => {
+      layer.bindPopup(`<a href="/turf/${properties.car_id}">${properties.name}</a><br>${turfs[properties.car_id].doors} door(s), ${turfs[properties.car_id].voters} voter(s)`);
+    },
+  });
+
+  layer.addTo(map);
+  const bounds = layer.getBounds();
+  console.log(bounds);
+  map.fitBounds(bounds);
+
+  L.control.locate().addTo(map);
+</script>
+{% endif %}
 <!-- <p style="font-size: 4pt;">hunter bullied me into making an index page lol</p> -->
 {% endblock %}

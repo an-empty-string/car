@@ -1,4 +1,5 @@
 # stdlib
+import json
 import os
 import secrets
 from collections.abc import Callable
@@ -39,6 +40,9 @@ if not os.path.exists("password.txt"):
 
 with open("password.txt") as f:
     password = f.read().strip()
+
+with open("turfs.geojson.example") as f:
+    geoturfs = json.load(f)
 
 
 @app.before_request
@@ -107,12 +111,16 @@ def tel_uri(k: str, tel: str = "tel") -> str:
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        geoturfs=geoturfs,
+        turf_data=[{"doors": len(t.doors), "voters": len(t.voters)} for t in db.turfs],
+    )
 
 
 @app.route("/phonebank/")
 def phonebank_index():
-    return render_template("index.html")
+    return render_template("index.html", geoturfs={})
 
 
 @app.route("/phonebank_toggle/")
