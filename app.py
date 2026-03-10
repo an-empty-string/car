@@ -74,6 +74,26 @@ def before_request():
         return redirect(url_for("login"))
 
 
+def restrict_turfs(turf_id):
+    if "canvasser" not in session:
+        abort(403)
+
+    if session["admin"]:
+        return
+
+    if turf_id in session["turfs"]:
+        return
+
+    abort(403)
+
+
+def restrict_voter_turfs(voter):
+    if g.phonebank:
+        restrict_turfs(voter.phonebankturf)
+    else:
+        restrict_turfs(voter.turf_id)
+
+
 @app.route("/login/", methods=["GET", "POST"])
 @app.route("/login/<login_code>/", methods=["GET"])
 def login(login_code=None):
@@ -211,6 +231,8 @@ def map_toggle():
 
 @app.route("/turf/<int:id>/")
 def show_turf(id: ID):
+    restrict_turfs(id)
+
     turf = db.get_turf_by_id(id)
 
     if not turf.phone_key:
@@ -255,6 +277,8 @@ def show_turf(id: ID):
 
 @app.route("/turf/<int:id>/start/")
 def start_turf(id):
+    restrict_turfs(id)
+
     turf = db.get_turf_by_id(id)
     turf.add_note(
         Note(
@@ -271,6 +295,8 @@ def start_turf(id):
 
 @app.route("/turf/<int:id>/finish/")
 def finish_turf(id):
+    restrict_turfs(id)
+
     turf = db.get_turf_by_id(id)
     turf.add_note(
         Note(
@@ -290,6 +316,9 @@ def show_door(id: ID):
     door = db.get_door_by_id(id)
     if door.turf_id is None:
         return "no turf associated with door"
+
+    restrict_turfs(door.turf_id)
+
     turf_doors = db.get_turf_by_id(door.turf_id).doors
     idx = turf_doors.index(id)
     prev_door_id = next_door_id = None
@@ -310,6 +339,9 @@ def show_door(id: ID):
 @app.route("/door/<int:id>/contact/")
 def new_door_contact(id: ID):
     door = db.get_door_by_id(id)
+
+    restrict_turfs(door.turf_id)
+
     new_voter = db.save_voter(
         Voter(
             created_by=g.canvasser,
@@ -330,6 +362,9 @@ def new_door_contact(id: ID):
 @app.route("/door/<int:id>/attempted/")
 def door_attempt(id: ID):
     door = db.get_door_by_id(id)
+
+    restrict_turfs(door.turf_id)
+
     door.add_note(
         Note(
             author=g.canvasser,
@@ -346,6 +381,9 @@ def door_attempt(id: ID):
 @app.route("/door/<int:id>/do-not-knock/")
 def door_dnk(id: ID):
     door = db.get_door_by_id(id)
+
+    restrict_turfs(door.turf_id)
+
     door.add_note(
         Note(
             author=g.canvasser,
@@ -362,6 +400,8 @@ def door_dnk(id: ID):
 @app.route("/voter/<int:id>/")
 def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
+
+    restrict_voter_turfs(voter)
 
     prev_voter_id = next_voter_id = None
     if g.phonebank and voter.phonebankturf is not None:
@@ -395,6 +435,14 @@ def thing_title(model: Model) -> str:
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
 def note_obj(typ: str, id: ID):
+    if typ == "turf":
+        restrict_turfs(id)
+    elif typ == "door":
+        restrict_turfs(db.get_door_by_id(id).turf_id)
+    elif typ == "voter":
+        restrict_voter_turfs(db.get_voter_by_id(id))
+    # FIXME turf restriction
+
     assert is_valid_type(typ)
     obj = db.get_by_type_and_id(typ, id)
     if request.method == "GET":
@@ -423,6 +471,8 @@ def note_obj(typ: str, id: ID):
 @app.route("/voter/<int:id>/edit/", methods=["GET", "POST"])
 def edit_voter(id: ID):
     voter = db.get_voter_by_id(id)
+
+    restrict_voter_turfs(voter)
 
     if request.method == "GET":
         return render_template(
