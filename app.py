@@ -51,7 +51,7 @@ if not os.path.exists("password.txt"):
 with open("password.txt") as f:
     password = f.read().strip()
 
-with open("turfs.geojson.example") as f:
+with open("turfs.geojson") as f:
     geoturfs = json.load(f)
 
 

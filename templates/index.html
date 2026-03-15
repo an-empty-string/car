@@ -27,7 +27,7 @@
       refused: 'red',
       'do-not-contact': 'red',
       followup: 'green',
-      'in-progress': 'grey',
+      'in-progress': 'white',
       done: 'white',
     }[disposition] ?? 'blue';
   };
@@ -35,7 +35,7 @@
 
   const layer = L.geoJSON(geoturfs, {
     style: ({properties}) => {
-        return {color: getDispositionColor(turfs[properties.car_id].disposition)};
+        return {color: getDispositionColor(turfs[properties.car_id].disposition), fillOpacity: 0.7};
     },
     onEachFeature: ({properties: {car_id: turf_id, name}}, layer) => {
       layer.bindPopup(`<a href="/turf/${turf_id}">${name}</a>
