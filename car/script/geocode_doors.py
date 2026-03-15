@@ -2,10 +2,10 @@ import csv
 import os
 import sys
 
-from model import Database, has_geocode
+from ..model import Database, has_geocode
 
 sys.path.insert(
-    0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "../geocode")
+    0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../../geocode")
 )
 from geocode import get_geocoder  # pyright: ignore
 

@@ -8,6 +8,9 @@ dependencies = ["flask>=3.1.2", "pydantic>=2.12.5"]
 [dependency-groups]
 dev = ["black>=26.1.0", "pyright>=1.1.408", "typing-extensions>=4.15.0"]
 
+[tool.setuptools]
+packages = ["car"]
+
 [tool.black]
 line-length = 88
 target-version = ['py310']

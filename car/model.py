@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import TypeIs
 
 type ID = int
+type NotesKey = str
 type Disposition = Literal[
     "attempted",
     "refused",
@@ -88,8 +89,8 @@ class BaseDatabase(BaseModel):
             f.write(self.to_json())
 
         if backup:
-            if not os.path.isdir("snapshot"):
-                os.mkdir("snapshot")
+            if not os.path.isdir(os.path.join(DATA_ROOT, "snapshot")):
+                os.mkdir(os.path.join(DATA_ROOT, "snapshot"))
 
             os.rename(self.db_file(), self.db_commit_file())
 
@@ -140,12 +141,12 @@ class NoteDatabase(BaseDatabase):
     door: defaultdict[str, list[Note]] = defaultdict(list)
     voter: defaultdict[str, list[Note]] = defaultdict(list)
 
-    def by_type_and_id(self, typ: DatabaseType, id: ID) -> Sequence[Note]:
+    def by_type_and_id(self, typ: DatabaseType, id: NotesKey) -> Sequence[Note]:
         """We explicitly return a Sequence instead of a list
         for immutability without copying to a tuple"""
         return getattr(self, typ)[id]
 
-    def add(self, typ: DatabaseType, id: ID, note: Note):
+    def add(self, typ: DatabaseType, id: NotesKey, note: Note):
         getattr(self, typ)[id].insert(0, note)
 
 

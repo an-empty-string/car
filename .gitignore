@@ -9,3 +9,5 @@
 *.qmd
 uv.lock
 __pycache__
+/build
+/*.egg-info

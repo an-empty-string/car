@@ -18,10 +18,10 @@ from flask import (
     url_for,
 )
 
-import utils
-
 # project
-from model import (
+from . import utils
+from .model import (
+    DATA_ROOT,
     DISPOSITIONS,
     ID,
     TYPE_DISPOSITIONS,
@@ -37,6 +37,8 @@ from model import (
 
 app = Flask(__name__)
 
+os.chdir(DATA_ROOT)
+
 if not os.path.exists("secret_key.txt"):
     with open("secret_key.txt", "w") as f:
         f.write(secrets.token_hex())
@@ -51,8 +53,10 @@ if not os.path.exists("password.txt"):
 with open("password.txt") as f:
     password = f.read().strip()
 
-with open("turfs.geojson") as f:
-    geoturfs = json.load(f)
+geoturfs = {}
+if os.path.exists("turfs.geojson"):
+    with open("turfs.geojson") as f:
+        geoturfs = json.load(f)
 
 
 @app.before_request
@@ -120,7 +124,11 @@ def login(login_code=None):
 
     else:
         # Try finding the turf by login code
-        pw = "".join([i for i in pw if i.isnumeric()])
+        if pw is None:
+            pw = ""
+        else:
+            pw = "".join([i for i in pw if i.isnumeric()])
+
         for turf in db.turfs:
             if turf.login_code == pw:
                 break

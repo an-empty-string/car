@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from model import Database, has_geocode
+from ..model import Database, has_geocode
 
 database = Database.get()
 

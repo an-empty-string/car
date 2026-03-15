@@ -6,7 +6,7 @@ import re
 import sqlite3
 import subprocess
 
-from model import ID, Database, Turf, has_geocode
+from ..model import ID, Database, Turf, has_geocode
 
 TURF_DATA_PATH = os.environ["TURF_DATA_PATH"]
 
