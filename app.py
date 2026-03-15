@@ -105,7 +105,11 @@ def login(login_code=None):
         pw = login_code
 
     else:
-        pw = request.form.get("password").strip()
+        pw = request.form.get("password")
+        if pw is None:
+            abort(400)
+
+        pw = pw.strip()
 
     session["admin"] = False
 
