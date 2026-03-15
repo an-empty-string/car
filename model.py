@@ -18,6 +18,8 @@ type Disposition = Literal[
     None,
 ]
 
+DATA_ROOT = os.getenv("CAR_DATA_PATH", ".")
+
 DISPOSITIONS: dict[str | None, str] = {
     None: "-",
     "attempted": "Attempted, voter not reached",
@@ -62,15 +64,18 @@ class BaseDatabase(BaseModel):
 
     @classmethod
     def db_file(cls):
-        return f"{cls.DATABASE_FILE_NAME}.json"
+        return os.path.join(DATA_ROOT, f"{cls.DATABASE_FILE_NAME}.json")
 
     @classmethod
     def db_temp_file(cls):
-        return f"{cls.DATABASE_FILE_NAME}-new.json"
+        return os.path.join(DATA_ROOT, f"{cls.DATABASE_FILE_NAME}-new.json")
 
     @classmethod
     def db_commit_file(cls):
-        return f"snapshot/{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json"
+        return os.path.join(
+            DATA_ROOT,
+            f"snapshot/{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json",
+        )
 
     def to_json(self):
         return self.model_dump_json(indent=4, by_alias=True)
@@ -131,9 +136,9 @@ class NoteDatabase(BaseDatabase):
     DATABASE_FILE_NAME: ClassVar[str] = "note-database"
     SHOULD_CREATE: ClassVar[bool] = True
 
-    turf: defaultdict[ID, list[Note]] = defaultdict(list)
-    door: defaultdict[ID, list[Note]] = defaultdict(list)
-    voter: defaultdict[ID, list[Note]] = defaultdict(list)
+    turf: defaultdict[str, list[Note]] = defaultdict(list)
+    door: defaultdict[str, list[Note]] = defaultdict(list)
+    voter: defaultdict[str, list[Note]] = defaultdict(list)
 
     def by_type_and_id(self, typ: DatabaseType, id: ID) -> Sequence[Note]:
         """We explicitly return a Sequence instead of a list
@@ -161,6 +166,9 @@ class Model(BaseModel):
     def has_id(self) -> bool:
         return self.id_ is not None
 
+    def id_for_notes(self):
+        return str(self.id)
+
     def last_disposition_with_note(
         self, after: str | None = None, default: Disposition = None
     ) -> tuple[Disposition, Note | None]:
@@ -185,11 +193,11 @@ class Model(BaseModel):
 
     @property
     def notes(self) -> Sequence[Note]:
-        return NoteDatabase.get().by_type_and_id(self.TYPE, self.id)
+        return NoteDatabase.get().by_type_and_id(self.TYPE, self.id_for_notes())
 
     def add_note(self, note: Note, *, commit: bool = False):
         db = NoteDatabase.get()
-        db.add(self.TYPE, self.id, note)
+        db.add(self.TYPE, self.id_for_notes(), note)
         if commit:
             db.commit()
 
@@ -239,6 +247,9 @@ class Door(Model):
 
         return None
 
+    def id_for_notes(self):
+        return f"{self.address!r} {self.unit!r} {self.city!r}"
+
 
 class _DoorWithGeoCode(Door):
     lat: float = 0  # type: ignore
@@ -277,6 +288,9 @@ class Voter(Model):
 
         except Exception:
             return 0
+
+    def id_for_notes(self):
+        return self.statevoterid or str(self.id)
 
 
 def is_valid_ordering(models: Sequence[Model]) -> bool:
