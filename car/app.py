@@ -46,12 +46,13 @@ if not os.path.exists("secret_key.txt"):
 with open("secret_key.txt") as f:
     app.secret_key = f.read()
 
-if not os.path.exists("password.txt"):
-    with open("password.txt", "w") as f:
-        f.write("e")
+if not (password := os.getenv("CAR_ADMIN_PASSWORD")):
+    if not os.path.exists("password.txt"):
+        with open("password.txt", "w") as f:
+            f.write("e")
 
-with open("password.txt") as f:
-    password = f.read().strip()
+    with open("password.txt") as f:
+        password = f.read().strip()
 
 geoturfs = {}
 if os.path.exists("turfs.geojson"):
