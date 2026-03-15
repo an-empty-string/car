@@ -1,1 +1,8 @@
-["this voter is very cool", "hello"]
+[
+    "strong support",
+    "weak support",
+    "undecided",
+    "oppose",
+    "req candidate phone call",
+    "fundraiser"
+]
