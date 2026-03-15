@@ -70,7 +70,7 @@ class BaseDatabase(BaseModel):
 
     @classmethod
     def db_commit_file(cls):
-        return f"{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json"
+        return f"snapshot/{cls.DATABASE_FILE_NAME}-{datetime.now().isoformat()}.json"
 
     def to_json(self):
         return self.model_dump_json(indent=4, by_alias=True)
@@ -83,6 +83,9 @@ class BaseDatabase(BaseModel):
             f.write(self.to_json())
 
         if backup:
+            if not os.path.isdir("snapshot"):
+                os.mkdir("snapshot")
+
             os.rename(self.db_file(), self.db_commit_file())
 
         os.rename(self.db_temp_file(), self.db_file())
@@ -199,6 +202,7 @@ class Turf(Model):
     login_code: str = ""
     doors: list[ID] = []
     voters: list[ID] = []
+    visible: bool = True
 
     def started_at(self) -> str | None:
         for note in sorted(self.notes, key=lambda k: k.ts, reverse=True):

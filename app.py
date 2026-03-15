@@ -194,6 +194,7 @@ def index():
         geoturfs=geoturfs,
         turf_data=[
             {
+                "visible": t.visible,
                 "doors": len(t.doors),
                 "voters": len(t.voters),
                 "disposition": t.last_disposition(),

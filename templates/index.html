@@ -1,9 +1,9 @@
 {% extends "base.html" %} {% block title %}Turfs{% endblock %} {% block content %}
 <h1>Turfs</h1>
 <ul class="secretly-a-table">
-  {% for turf in db.turfs if session.admin or turf.id in session.turfs %}
+  {% for turf in db.turfs if (session.admin or turf.id in session.turfs) and turf.visible %}
   <li>
-    <a href="{{ url_for('show_turf', id=loop.index0) }}">{{ turf.desc }}</a>
+    <a href="{{ url_for('show_turf', id=turf.id) }}">{{ turf.desc }}</a>
     ({{turf.doors | length}} Doors, {{turf.voters | length}} Voters)
   </li>
   {% endfor %}
@@ -35,7 +35,7 @@
 
   const layer = L.geoJSON(geoturfs, {
     style: ({properties}) => {
-        return {color: getDispositionColor(turfs[properties.car_id].disposition), fillOpacity: 0.7};
+        return {color: getDispositionColor(turfs[properties.car_id].disposition), fillOpacity: 0.65};
     },
     onEachFeature: ({properties: {car_id: turf_id, name}}, layer) => {
       layer.bindPopup(`<a href="/turf/${turf_id}">${name}</a>
