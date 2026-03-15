@@ -2,7 +2,12 @@ import csv
 
 from model import Database, Door, Turf, Voter
 
-VOTER_FILE = "demprimaryvoters.csv"
+VOTER_FILE = "SOSVoterList_20260219_8835.csv"
+TARGETING_DATA_FILE = "targeting_data.csv"
+
+with open(TARGETING_DATA_FILE) as f:
+    targeting_lines = list(csv.DictReader(f))
+    targeting_data = {line["id"]: line for line in targeting_lines}
 
 
 with open(VOTER_FILE) as f:
@@ -16,6 +21,9 @@ doors: dict[tuple[str, str, str], Door] = {}
 
 
 for line in lines:
+    if line["Registrant ID"] not in targeting_data:
+        continue
+
     addr = " ".join(
         filter(
             None,

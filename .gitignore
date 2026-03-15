@@ -2,7 +2,10 @@
 /*.csv
 /*.geojson
 /*.json
+/snapshot/*.json
 /password.txt
 /secret_key.txt
+/venv
+*.qmd
 uv.lock
 __pycache__
