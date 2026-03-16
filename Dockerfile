@@ -6,6 +6,7 @@ ENV CAR_DATA_PATH=/var/lib/car-db
 WORKDIR $CAR_DATA_PATH
 
 ADD pyproject.toml /app/pyproject.toml
+ADD MANIFEST.in /app/MANIFEST.in
 ADD car/ /app/car/
 
 RUN pip install /app
