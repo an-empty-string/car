@@ -1,7 +1,9 @@
 # stdlib
 import json
 import os
+import random
 import secrets
+import time
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -35,7 +37,10 @@ from .model import (
     is_valid_type,
 )
 
+PHONEBANK_MIN_DELAY = 60 * 15
+
 app = Flask(__name__)
+cache = utils.MemoryCache()
 
 os.chdir(DATA_ROOT)
 
@@ -94,6 +99,9 @@ def restrict_turfs(turf_id):
 
 def restrict_voter_turfs(voter):
     if g.phonebank:
+        if voter.id == session["chosen_voter"]:
+            return
+
         restrict_turfs(voter.phonebankturf)
     else:
         restrict_turfs(voter.turf_id)
@@ -197,6 +205,10 @@ def tel_uri(k: str, tel: str = "tel") -> str:
     return f"{tel}:+1{k[:10]}"
 
 
+def is_phone(k: str):
+    return len([i for i in k if i.isnumeric()]) > 7
+
+
 @app.route("/")
 def index():
     if not session["admin"] and len(session["turfs"]) == 1:
@@ -223,16 +235,6 @@ def phonebank_index():
     return render_template("index.html", geoturfs={})
 
 
-@app.route("/phonebank_toggle/")
-def phonebank_toggle():
-    if "phonebank" in session:
-        del session["phonebank"]
-    else:
-        session["phonebank"] = 1
-
-    return redirect(request.args.get("return", "/"))
-
-
 @app.route("/map_toggle/")
 def map_toggle():
     if "use_map" in session:
@@ -249,44 +251,45 @@ def show_turf(id: ID):
 
     turf = db.get_turf_by_id(id)
 
-    if not turf.phone_key:
-        geodoors: list[dict[str, Any]] = []
-        for door_id in turf.doors:
-            door = db.get_door_by_id(door_id)
-            geodoors.append(
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [door.lon, door.lat],
-                    },
-                    "properties": {
-                        "address": door.address,
-                        "unit": door.unit,
-                        "n_voters": len(door.voters),
-                        "url": url_for("show_door", id=door.id),
-                    },
-                }
-            )
+    if turf.phone_key:
+        session["phonebank"] = True
+        session["phonebank_turf"] = turf.id
+        return redirect(url_for("phonebank_next_voter", turf_id=id))
 
-        return render_template(
-            "turf.html",
-            turf=turf,
-            geodoors={
-                "type": "FeatureCollection",
-                "crs": {
-                    "type": "name",
-                    "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+    else:
+        session["phonebank"] = False
+
+    geodoors: list[dict[str, Any]] = []
+    for door_id in turf.doors:
+        door = db.get_door_by_id(door_id)
+        geodoors.append(
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [door.lon, door.lat],
                 },
-                "features": geodoors,
-            },
+                "properties": {
+                    "address": door.address,
+                    "unit": door.unit,
+                    "n_voters": len(door.voters),
+                    "url": url_for("show_door", id=door.id),
+                },
+            }
         )
 
-    voters = list(map(db.get_voter_by_id, turf.voters))
-    # voters = [v for v in voters if phone_key in v and v[phone_key]]
-    # voters.sort(key=lambda v: reformat_phone(v[phone_key]))
-
-    return render_template("phonebank_turf.html", turf=turf, tvoters=voters)
+    return render_template(
+        "turf.html",
+        turf=turf,
+        geodoors={
+            "type": "FeatureCollection",
+            "crs": {
+                "type": "name",
+                "properties": {"name": "urn:ogc:def:crs:OGC:1.3:CRS84"},
+            },
+            "features": geodoors,
+        },
+    )
 
 
 @app.route("/turf/<int:id>/start/")
@@ -418,18 +421,10 @@ def show_voter(id: ID):
     restrict_voter_turfs(voter)
 
     prev_voter_id = next_voter_id = None
-    if g.phonebank and voter.phonebankturf is not None:
-        turf_voters = db.get_turf_by_id(voter.phonebankturf).voters
-        idx = turf_voters.index(id)
-        if idx > 0:
-            prev_voter_id = turf_voters[idx - 1]
-        if idx + 1 < len(turf_voters):
-            next_voter_id = turf_voters[idx + 1]
 
     return render_template(
         "voter.html",
         voter=voter,
-        phonebank=True,
         prev_voter_id=prev_voter_id,
         next_voter_id=next_voter_id,
     )
@@ -525,6 +520,45 @@ def edit_voter(id: ID):
             )
 
     return redirect(url_for("show_voter", id=id))
+
+
+@app.route("/next/<int:turf_id>/")
+def phonebank_next_voter(turf_id):
+    restrict_turfs(turf_id)
+    turf = db.get_turf_by_id(turf_id)
+
+    if not turf.phone_key:
+        return redirect(url_for("show_turf", id=turf_id))
+
+    # all voters in turf
+    sample = random.sample(turf.voters, len(turf.voters))
+    for voter_id in sample:
+        last_seen = cache.get(f"last_seen_{voter_id}")
+        if last_seen is not None and time.time() - last_seen < PHONEBANK_MIN_DELAY:
+            continue
+
+        voter = db.get_voter_by_id(voter_id)
+
+        # don't phonebank anyone who we've conversed with before
+        # TODO - use the phone_key to decide config
+        if voter.notes:
+            continue
+
+        # don't phonebank... you know, anyone without a phone...
+        # TODO - use phone_key=textbank to check SMS instead
+        if not is_phone(voter.bestphone):
+            continue
+
+        session["chosen_voter"] = voter_id
+        cache.set(f"last_seen_{voter_id}", time.time())
+        return redirect(url_for("show_voter", id=voter_id))
+
+    flash("No voters to contact in this phonebank.")
+    if not session["admin"] and len(session["turfs"]) == 1:
+        session["turfs"] = []
+        return redirect(url_for("login"))
+
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

@@ -45,3 +45,15 @@ def human_interval(sec):
 
 def time_taken(t_start, t_end):
     return human_interval(time_taken_sec(t_start, t_end))
+
+
+class MemoryCache:
+    # swap out for redis if this is causing problems
+    def __init__(self):
+        self.data = {}
+
+    def get(self, key):
+        return self.data.get(key)
+
+    def set(self, key, value):
+        self.data[key] = value

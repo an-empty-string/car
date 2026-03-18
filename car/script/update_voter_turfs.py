@@ -25,7 +25,7 @@ def sync_turf_props():
     cur.close()
 
     for rowid, car_id, name in turf_meta:
-        if car_id is None:
+        if car_id is None or os.getenv("RECREATE_TURFS"):
             turf = database.save_turf(Turf(desc=name, created_by="GIS turf import"))
 
             cur = conn.cursor()

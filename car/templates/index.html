@@ -4,7 +4,11 @@
   {% for turf in db.turfs if (session.admin or turf.id in session.turfs) and turf.visible %}
   <li>
     <a href="{{ url_for('show_turf', id=turf.id) }}">{{ turf.desc }}</a>
-    ({{turf.doors | length}} Doors, {{turf.voters | length}} Voters)
+    {% if turf.phone_key %}
+    (phonebank, {{ turf.voters | length }} voters)
+    {% else %}
+    ({{ turf.doors | length }} doors, {{ turf.voters | length }} voters)
+    {% endif %}
   </li>
   {% endfor %}
 </ul>

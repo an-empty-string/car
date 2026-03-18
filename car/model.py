@@ -406,7 +406,9 @@ class Database(BaseDatabase):
                         maybe_children.remove(child_id)
 
         _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
-        _fixup_one_backref_set(self.voters, "voters", self.turfs, "turf_id")
+        _fixup_one_backref_set(
+            self.voters, "voters", [t for t in self.turfs if not t.phone_key], "turf_id"
+        )
         _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
 
     def assert_constraints(self):
