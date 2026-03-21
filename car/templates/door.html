@@ -8,7 +8,10 @@
         <li>back to {{ turf_link(door.turf_id) }}</li>
     </ul>
 </nav>
-<h1><a target="_blank" href="https://maps.google.com/?q={{ ('directions to ' + door.address + ' ' + door.city + ' AL') | urlencode }}">{{ door.address }}</a>{% if door.unit %} <small>{{ door.unit }}</small>{% endif %}</h1>
+<h1>
+    {% if session.autolink|default(true) %}
+    <a target="_blank" href="https://maps.google.com/?q={{ ('directions to ' + door.address + ' ' + door.city + ' AL') | urlencode }}">{{ door.address }}</a>{% else %}{{ door.address }}{% endif %}{% if door.unit %} <small>{{ door.unit }}</small>{% endif %}
+</h1>
 
 {% with disposition = db.get_disposition_for_type_and_id("door", door.id) %}
 {% if disposition == "do-not-contact" %}

@@ -258,6 +258,16 @@ def map_toggle():
     return redirect(request.args.get("return", "/"))
 
 
+@app.route("/autolink_toggle/")
+def autolink_toggle():
+    if "autolink" in session:
+        del session["autolink"]
+    else:
+        session["autolink"] = 0
+
+    return redirect(request.args.get("return", "/"))
+
+
 @app.route("/turf/<int:id>/")
 def show_turf(id: ID):
     restrict_turfs(id)

@@ -124,6 +124,10 @@
             <a href="/map_toggle/?return={{ request.url|urlencode }}">
                 {% if session.use_map|default(True) %}disable{% else %}enable{% endif %}
                 turf maps
+            </a> &middot;
+
+            <a href="/autolink_toggle/?return={{ request.url|urlencode }}">
+                {% if session.autolink|default(True) %}disable{% else %}enable{% endif %} door links to gmaps
             </a>
         </footer>
     </body>
