@@ -5,7 +5,7 @@
 <form method="POST">
     <div class="form-field">
         <label for="note">Note</label>
-        <input name="note" id="note" type="text" autofocus />
+        <input name="note" id="note" type="text" autofocus required />
     </div>
     {% if typ == "voter" %}
     <div class="form-field">
@@ -19,29 +19,39 @@
                 const rdQuickNotes = await rdrQuickNotes.json();
                 const lsrQuickNotes = localStorage.getItem("myquicknotes");
 
-                let allQuickNotes;
                 let lsQuickNotes = [];
                 if ( lsrQuickNotes != null ) {
                     console.log(lsrQuickNotes);
                     lsQuickNotes = JSON.parse(lsrQuickNotes);
                     console.log(lsQuickNotes);
-
-                    allQuickNotes = rdQuickNotes;
-                    for ( let mqn of lsQuickNotes ) {
-                        allQuickNotes.push(mqn);
-                    }
-                } else {
-                    allQuickNotes = rdQuickNotes;
                 }
-                console.log(allQuickNotes);
+
+                // rdQuickNotes
+                // lsQuickNotes
 
                 let sel = document.getElementById("quicknote");
-                for ( let note of allQuickNotes ) {
-                    let opt = document.createElement("option");
-                    opt.innerHTML = note;
-                    opt.value = note;
-                    sel.appendChild(opt);
+
+                function makeGroup(label, notes) {
+                    let optGroup = document.createElement("optgroup");
+                    optGroup.label = label;
+
+                    for(let note of notes) {
+                        let opt = document.createElement("option");
+                        opt.innerHTML = note;
+                        opt.value = note;
+                        optGroup.appendChild(opt);
+                    }
+
+                    return optGroup
                 }
+
+                if(rdQuickNotes) {
+                    sel.appendChild(makeGroup("Campaign notes", rdQuickNotes));
+                }
+                if(lsQuickNotes) {
+                    sel.appendChild(makeGroup("My notes", lsQuickNotes));
+                }
+
                 sel.addEventListener("change", function() {
                     if ( document.getElementById("quicknote").value == "save" ) {
                         //save it
