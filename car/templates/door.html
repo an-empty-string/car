@@ -1,22 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Door: {{ door.address }}{% endblock %}
+{% block title %}Door: {{ door.address }} {{ door.unit }}{% endblock %}
 {% block content %}
 {% set turf = db.get_turf_by_id(door.turf_id) %}
 
 <nav>
     <ul id="door-crumbs">
-        {% if prev_door_id %}
-        <li>{{ door_link(prev_door_id) }}</li>
-        {% endif %}
-
         <li>back to {{ turf_link(door.turf_id) }}</li>
-
-        {% if next_door_id %}
-        <li>{{ door_link(next_door_id) }}</li>
-        {% endif %}
     </ul>
 </nav>
-<h1><a target="_blank" href="https://maps.google.com/?q={{ ('directions to ' + door.address + ' ' + door.city + ' AL') | urlencode }}">{{ door.address }}</a></h1>
+<h1><a target="_blank" href="https://maps.google.com/?q={{ ('directions to ' + door.address + ' ' + door.city + ' AL') | urlencode }}">{{ door.address }}</a>{% if door.unit %} <small>{{ door.unit }}</small>{% endif %}</h1>
 
 {% with disposition = db.get_disposition_for_type_and_id("door", door.id) %}
 {% if disposition == "do-not-contact" %}

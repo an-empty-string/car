@@ -2,13 +2,13 @@
 {% block title %}Turf: {{ turf.desc }}{% endblock %}
 {% block content %}
 <h1>{{ turf.desc }}</h1>
-<span class="turf-code">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
+<span class="turf-code turf-code-big">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span> (tap to view turf code)
 <!--
 https://www.google.com/maps/dir/
 {% for door_id in turf.doors %}{% with door = db.get_door_by_id(door_id) %}{{ door.address + ' ' + door.city + ' AL'|urlencode }}{% endwith %}/{% endfor %}
 -->
 
-{% with turf_disposition, disposition_note = turf.last_disposition_with_note() %}
+{% set turf_disposition, disposition_note = turf.last_disposition_with_note() %}
 {% if turf_disposition is none %}
 <p>Turf not started yet! &middot; <a href="{{ url_for('start_turf', id=turf.id) }}">Claim and start turf</a></p>
 {% elif turf_disposition == "in-progress" %}
@@ -16,18 +16,50 @@ https://www.google.com/maps/dir/
 {% elif turf_disposition == "done" %}
 <p>Turf finished by <strong>{{ disposition_note.author }}</strong> at {{ disposition_note.ts }} &middot; <a href="{{ url_for('start_turf', id=turf.id) }}">Claim and start turf</a></p>
 {% endif %}
-{% endwith %}
 
 {% if session.use_map|default(True) %}
 <div id="map" style="height: 50vh;"></div>
 {% endif %}
 
 <h2>🚪 Doors</h2>
+{% if turf_disposition != "in-progress" %}
+<p><strong>This turf is not marked as in-progress.</strong>
+If you want to knock doors in this turf, please <a href="{{ url_for('start_turf', id=turf.id) }}">Claim and start turf</a> first.</p>
+<details>
+    <summary>Show doors anyway</summary>
+{% endif %}
+
+{% if false %}
 <ul class="secretly-a-table">
     {% for door in turf.doors %}
     <li>{{ door_link(door, turf) }}</li>
     {% endfor %}
 </ul>
+{% else %}
+
+{% for order_key, doors in pretty_ordered_doors %}
+<ul class="secretly-a-table">
+<li>
+    <strong>
+    {% if order_key[2] != "" %}
+    {{ order_key[2] }} {{ order_key[0] }}
+    {% else %}
+    {{ order_key[0] }} {{ order_key[1] }} side
+    {% endif %}
+    </strong>
+</li>
+
+    {% for door in doors %}
+    <li>{{ door_link(door.id, turf) }}</li>
+    {% endfor %}
+</ul>
+{% endfor %}
+{% endif %}
+
+{% if turf_disposition != "in-progress" %}
+</details>
+{% endif %}
+
 <h2>📝 Notes</h2>
 {{ render_notes(turf) }}
 {{ note_link("turf", turf.id) }}

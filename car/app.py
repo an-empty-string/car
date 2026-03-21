@@ -1,4 +1,5 @@
 # stdlib
+import itertools
 import json
 import os
 import random
@@ -143,7 +144,9 @@ def login(login_code=None):
                 break
 
         else:
-            flash("No such turf code! Try again.")
+            if request.method == "POST":
+                flash("No such turf code! Try again.")
+
             return render_template("login.html")
 
         if "turfs" not in session:
@@ -214,9 +217,19 @@ def index():
     if not session["admin"] and len(session["turfs"]) == 1:
         return redirect(url_for("show_turf", id=session["turfs"][0]))
 
+    if session["admin"]:
+        my_geoturfs = geoturfs
+    else:
+        my_geoturfs = geoturfs.copy()
+        my_geoturfs["features"] = [
+            x
+            for x in my_geoturfs["features"]
+            if x["properties"]["car_id"] in session["turfs"]
+        ]
+
     return render_template(
         "index.html",
-        geoturfs=geoturfs,
+        geoturfs=my_geoturfs,
         turf_data=[
             {
                 "visible": t.visible,
@@ -278,9 +291,15 @@ def show_turf(id: ID):
             }
         )
 
+    pretty_ordered_doors = itertools.groupby(
+        sorted([db.get_door_by_id(d) for d in turf.doors], key=lambda d: d.sort_key()),
+        key=lambda d: d.print_order_key(),
+    )
+
     return render_template(
         "turf.html",
         turf=turf,
+        pretty_ordered_doors=pretty_ordered_doors,
         geodoors={
             "type": "FeatureCollection",
             "crs": {
@@ -373,7 +392,7 @@ def new_door_contact(id: ID):
         Note(author=g.canvasser, system=True, note="created the voter"), commit=True
     )
 
-    return redirect(url_for("edit_voter", id=new_voter.id))
+    return redirect(url_for("edit_voter", id=new_voter.id, names_only=True))
 
 
 @app.route("/door/<int:id>/attempted/")
@@ -485,8 +504,7 @@ def edit_voter(id: ID):
 
     if request.method == "GET":
         return render_template(
-            "edit_voter.html",
-            voter=voter,
+            "edit_voter.html", voter=voter, names_only=request.args.get("names_only")
         )
 
     elif request.method == "POST":

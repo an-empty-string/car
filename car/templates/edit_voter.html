@@ -25,6 +25,10 @@
 <h1>Edit voter</h1>
 
 <form method="POST">
+    {% if names_only %}
+    {{ render_text("firstname", "First name") }}
+    {{ render_text("lastname", "Last name") }}
+    {% else %}
     {{ render_dropdown(
         "activeinactive",
         "Registration status",
@@ -43,6 +47,7 @@
         "race", "Race", [("", "Unknown"), ("W", "White"), ("B", "Black"), ("A", "Asian"), ("I", "American Indian"), ("H", "Hispanic"), ("O", "Other")]
     ) }}
     {{ render_text("birthdate", "Birthdate") }}
+    {% endif %}
     <button type="submit">Save</button>
 </form>
 

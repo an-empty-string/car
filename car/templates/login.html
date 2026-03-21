@@ -2,7 +2,10 @@
 {% block title %}Login{% endblock %}
 {% block content %}
 <h1>Login</h1>
-<form method="post">
+{% if session.canvasser %}
+<a href="/">back to your turf</a>
+{% endif %}
+<form method="post" action="{{ url_for('login') }}">
     {% if not session.canvasser %}
     <div class="form-field">
         <label for="canvasser">Your name</label>

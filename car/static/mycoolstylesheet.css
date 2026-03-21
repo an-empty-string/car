@@ -120,8 +120,22 @@ header {
 }
 
 /* login codes */
-.turf-code {
-    font-family: monospace;
+.turf-code-big {
     font-weight: bold;
     font-size: 1.5em;
+    filter: blur(19px);
+}
+
+.turf-code {
+    font-family: monospace;
+}
+
+.turf-code:hover {
+    filter: none;
+}
+
+@media(max-width: 800px) {
+    .turf-code-small {
+        display: none;
+    }
 }

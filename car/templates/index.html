@@ -3,6 +3,9 @@
 <ul class="secretly-a-table">
   {% for turf in db.turfs if (session.admin or turf.id in session.turfs) and turf.visible %}
   <li>
+    {% if session.admin %}
+    <span class="turf-code turf-code-small">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
+    {% endif %}
     <a href="{{ url_for('show_turf', id=turf.id) }}">{{ turf.desc }}</a>
     {% if turf.phone_key %}
     (phonebank, {{ turf.voters | length }} voters)

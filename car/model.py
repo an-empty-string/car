@@ -251,6 +251,32 @@ class Door(Model):
     def id_for_notes(self):
         return f"{self.address!r} {self.unit!r} {self.city!r}"
 
+    def print_order_key(self):
+        house_num, street = self.address.split(maxsplit=1)
+
+        # check side from last numeric character of house_num
+        side = (
+            "even"
+            if int([c for c in house_num if c.isnumeric()][-1]) % 2 == 0
+            else "odd"
+        )
+
+        if self.unit:
+            return (street, side, house_num)
+
+        return (street, side, "")
+
+    def sort_key(self):
+        if self.unit:
+            num_key = int("".join([c for c in self.unit if c.isnumeric()]) or 0)
+            let_key = "".join([c for c in self.unit if not c.isnumeric()])
+
+            unit_key = (num_key, let_key)
+        else:
+            unit_key = (0, "")
+
+        return self.print_order_key() + unit_key
+
 
 class _DoorWithGeoCode(Door):
     lat: float = 0  # type: ignore
