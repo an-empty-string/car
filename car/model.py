@@ -422,7 +422,11 @@ class Database(BaseDatabase):
                     child_id_list.append(child.id)
 
             # remove children from incorrect parents
-            for parent in parents:
+            parents_iter = parents
+            if isinstance(parents_iter, dict):
+                parents_iter = parents_iter.values()
+
+            for parent in parents_iter:
                 maybe_children = getattr(parent, child_id_list_attr)
                 for child_id in maybe_children.copy():
                     if (
@@ -433,7 +437,10 @@ class Database(BaseDatabase):
 
         _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
         _fixup_one_backref_set(
-            self.voters, "voters", [t for t in self.turfs if not t.phone_key], "turf_id"
+            self.voters,
+            "voters",
+            {t.id: t for t in self.turfs if not t.phone_key},
+            "turf_id",
         )
         _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
 

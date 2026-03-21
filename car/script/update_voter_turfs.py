@@ -139,6 +139,9 @@ def reorder_doors(turf: Turf):
 
 def reorder_all_doors():
     for turf in database.turfs:
+        if turf.phone_key:
+            continue
+
         reorder_doors(turf)
         database.save_turf(turf)
 
