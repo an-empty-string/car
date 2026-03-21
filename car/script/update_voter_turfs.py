@@ -24,13 +24,21 @@ def sync_turf_props():
     turf_meta = cur.fetchall()
     cur.close()
 
+    active_turf_ids = {turf.id for turf in database.turfs}
+
     for rowid, car_id, name in turf_meta:
-        if car_id is None or os.getenv("RECREATE_TURFS"):
+        if (
+            car_id is None
+            or car_id not in active_turf_ids
+            or os.getenv("RECREATE_TURFS")
+        ):
             turf = database.save_turf(Turf(desc=name, created_by="GIS turf import"))
 
             cur = conn.cursor()
             cur.execute("UPDATE turfs SET car_id=? WHERE rowid=?", (turf.id, rowid))
             cur.close()
+
+            print(f"imported turf {name}")
 
         else:
             turf = database.get_turf_by_id(car_id)
