@@ -503,12 +503,19 @@ def note_obj(typ: str, id: ID):
 
     elif request.method == "POST":
         disposition = request.form.get("disposition")
-        if not is_valid_disposition(disposition):
+        if disposition == "None":
+            disposition = None
+
+        if disposition is not None and not is_valid_disposition(disposition):
             abort(400)
+
+        note_text = request.form.get("note", "")
+        if g.phonebank:
+            note_text += " (phonebank)"
 
         note = Note(
             author=g.canvasser,
-            note=request.form.get("note", ""),
+            note=note_text,
             disposition=disposition,
         )
         obj.add_note(note, commit=True)
