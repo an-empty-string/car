@@ -82,7 +82,7 @@
 
     <div class="form-field">
         {% for key, label in dispositions.items() if key in type_dispositions.voter %}
-        {% if key is none %}{% set label = "No disposition" %}{% endif %}
+        {% if key is none %}{% set label = "Don't change voter status" %}{% endif %}
         <input id="disp-{{ key }}" type="radio" name="disposition" value="{{ key }}" {% if key == "done" %}checked{% endif %}>
         <label for="disp-{{ key }}">{{ label }}</label>
         <br />
