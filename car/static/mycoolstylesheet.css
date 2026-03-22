@@ -108,6 +108,12 @@ span.disposition {
     font-size: 80%;
 }
 
+div.last-note {
+    font-size: 80%;
+    color: #222;
+    margin-left: 1.5em;
+}
+
 /* header */
 header {
     background-color: #eee;
