@@ -3,7 +3,7 @@
 <ul>
     {% for note in x.notes %}
     <li>
-        {{ note.author }}, {{ note.ts }}: <em>{{ note.note }}</em>
+        {{ note.author }}, {{ render_time_since(note.ts) }}: <em>{{ note.note }}</em>
         {% if note.disposition %}
         <span class="disposition">({{ dispositions[note.disposition] }})</span>
         {% endif %}
@@ -56,7 +56,7 @@
 
 {% macro render_time_since(start) %}
 <span style="text-decoration: underline dotted;" title="{{ start }}">{{ time_taken(start, None) }} ago</span>
-{% endmacro %}
+{%- endmacro %}
 
 {% macro phone_link(x, p) %}
 <a href="{{ tel_uri(p) }}"><button>call {{ reformat_phone(p) }} ({{ x }})</button></a>
