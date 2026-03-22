@@ -1,3 +1,4 @@
+import functools
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -114,6 +115,21 @@ class BaseDatabase(BaseModel):
             return cls.model_validate_json(empty)
         with open(cls.db_file()) as f:
             return cls.model_validate_json(f.read())
+
+    @functools.cache
+    def voter_ids_by_note_id(self):
+        return {v.id_for_notes(): v.id for v in self.voters}
+
+    def get_voter_by_note_id(self, note_id):
+        v = self.voter_ids_by_note_id()
+        if note_id not in v:
+            self.voters_by_note_id.cache_clear()
+            v = self.voters_by_note_id()
+
+        return self.get_voter_by_id(v[note_id])
+
+    def __hash__(self):
+        return hash(self.DATABASE_FILE_NAME)
 
 
 class Note(BaseModel):

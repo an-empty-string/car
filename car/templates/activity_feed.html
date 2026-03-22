@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🕵️‍♀️ Activity feed</h1>
+<table>
+    {% for ts, note, voter, disp, last_note in ns %}
+    <tr>
+        <td>{{ ts }}</td>
+        <td>{{ note.author }}</td>
+        <td>{{ voter_link(voter.id) }}</td>
+        <td>{{ note.disposition }}{% if note.note %}: {{ note.note }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

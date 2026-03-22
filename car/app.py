@@ -32,6 +32,7 @@ from .model import (
     Door,
     Model,
     Note,
+    NoteDatabase,
     Turf,
     Voter,
     is_valid_disposition,
@@ -93,6 +94,13 @@ def restrict_turfs(turf_id):
         return
 
     if turf_id in session["turfs"]:
+        return
+
+    abort(403)
+
+
+def restrict_admin():
+    if session["admin"]:
         return
 
     abort(403)
@@ -174,6 +182,7 @@ def logout():
 
 
 db = Database.get()
+note_db = NoteDatabase.get()
 
 
 @app.context_processor
@@ -271,6 +280,7 @@ def autolink_toggle():
 @app.route("/turf/<int:id>/")
 def show_turf(id: ID):
     restrict_turfs(id)
+    session["last_turf"] = id
 
     turf = db.get_turf_by_id(id)
 
@@ -587,6 +597,30 @@ def phonebank_next_voter(turf_id):
         return redirect(url_for("login"))
 
     return redirect(url_for("index"))
+
+
+@app.route("/activity_feed/")
+def activity_feed():
+    restrict_admin()
+
+    ns = []
+
+    filter_disposition = request.args.get("disposition")
+
+    for voter_id, notes in note_db.voter.items():
+        voter = db.get_voter_by_note_id(voter_id)
+        for note in notes:
+            if (
+                filter_disposition is not None
+                and note.disposition != filter_disposition
+            ):
+                continue
+
+            ns.append((note.ts, note, voter) + voter.last_disposition_with_note())
+
+    ns.sort(reverse=True)
+
+    return render_template("activity_feed.html", ns=ns)
 
 
 if __name__ == "__main__":
