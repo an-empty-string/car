@@ -291,7 +291,8 @@ class Door(Model):
         else:
             unit_key = (0, "")
 
-        return self.print_order_key() + unit_key
+        house_num, _ = self.address.split(maxsplit=1)
+        return self.print_order_key()[:2] + (house_num,) + unit_key
 
 
 class _DoorWithGeoCode(Door):
