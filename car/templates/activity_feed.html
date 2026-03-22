@@ -4,7 +4,7 @@
 <table>
     {% for ts, note, voter, disp, last_note in ns %}
     <tr>
-        <td>{{ ts }}</td>
+        <td>{{ render_time_since(ts) }}</td>
         <td>{{ note.author }}</td>
         <td>{{ voter_link(voter.id) }}</td>
         <td>{{ note.disposition }}{% if note.note %}: {{ note.note }}{% endif %}</td>

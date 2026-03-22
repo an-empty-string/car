@@ -123,8 +123,8 @@ class BaseDatabase(BaseModel):
     def get_voter_by_note_id(self, note_id):
         v = self.voter_ids_by_note_id()
         if note_id not in v:
-            self.voters_by_note_id.cache_clear()
-            v = self.voters_by_note_id()
+            self.voter_ids_by_note_id.cache_clear()
+            v = self.voter_ids_by_note_id()
 
         return self.get_voter_by_id(v[note_id])
 
