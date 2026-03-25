@@ -6,7 +6,11 @@
     {% if session.admin %}
     <span class="turf-code turf-code-small">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
     {% endif %}
-    <a href="{{ url_for('show_turf', id=turf.id) }}">{{ turf.desc }}</a>
+
+    {% with disp = db.get_disposition_for_type_and_id("turf", turf.id) %}
+    <a href="{{ url_for('show_turf', id=turf.id) }}" data-disposition="{{ disp }}">{{ turf.desc }}{% if disp %} <span class="disposition">({{ dispositions[disp] }})</span>{% endif %}</a>
+    {% endwith %}
+
     {% if turf.phone_key %}
     (phonebank, {{ turf.voters | length }} voters)
     {% else %}
