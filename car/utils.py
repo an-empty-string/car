@@ -35,12 +35,24 @@ def human_interval(sec):
     sec = sec % 60
 
     if mins < 60:
-        return f"{mins}min"
+        return f"{mins}min {sec}sec"
 
     hours = mins // 60
     mins = mins % 60
 
-    return f"{hours}hr {mins}min"
+    if hours < 24:
+        return f"{hours}hr {mins}min"
+
+    days = hours // 24
+    hours = hours % 24
+
+    if days < 7:
+        return f"{days}d {hours}h"
+
+    weeks = days // 7
+    days = days % 7
+
+    return f"{weeks}w {days}d"
 
 
 def time_taken(t_start, t_end):
