@@ -145,6 +145,10 @@ header {
     filter: none;
 }
 
+.last-door {
+    background: yellow !important;
+}
+
 .credits-link, .credits-link:visited {
     display: block;
     padding-top: 1em;

@@ -50,7 +50,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 </li>
 
     {% for door in doors %}
-    <li>{{ door_link(door.id, turf) }}</li>
+    <li{% if door.id == session.last_door %} class="last-door"{% endif %}>{{ door_link(door.id, turf) }}</li>
     {% endfor %}
 </ul>
 {% endfor %}
@@ -90,4 +90,18 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
     L.control.locate().addTo(map);
 </script>
 {% endif %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let scrollPos = localStorage[location.pathname + "scroll"];
+        console.log(scrollPos);
+        if(scrollPos) {
+            document.body.scrollTop = parseInt(scrollPos);
+        }
+
+        window.addEventListener("scroll", function() {
+            localStorage[location.pathname + "scroll"] = "" + document.body.scrollTop;
+        });
+    });
+</script>
 {% endblock %}
