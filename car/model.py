@@ -336,6 +336,9 @@ class Voter(Model):
     def id_for_notes(self):
         return self.statevoterid or str(self.id)
 
+    def has_demographics(self):
+        return self.birthdate and self.gender and self.race
+
 
 def is_valid_ordering(models: Sequence[Model]) -> bool:
     return all(m.id == idx for idx, m in enumerate(models))

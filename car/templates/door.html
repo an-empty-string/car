@@ -26,7 +26,7 @@
     {% for id in door.voters %}
     {% with voter = db.get_voter_by_id(id) %}
     <li>
-        {{ voter_link(id, turf) }} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}
+        {{ voter_link(id, turf) }}{% if voter.has_demographics() %} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% endif %}
         {% with disp, note = voter.last_disposition_with_note() %}
         {% if disp %}
         <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>

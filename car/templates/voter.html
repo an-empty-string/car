@@ -12,23 +12,25 @@
 <h1>{{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}</h1>
 
 <section id="demographics">
+{% if voter.activeinactive in ("A", "I") %}
 <div>
     <strong>Registration status:</strong>
     {% if voter.activeinactive == "A" %}
     Active voter registration
     {% elif voter.activeinactive == "I" %}
     <strong>Inactive voter registration</strong> &mdash; have them reregister to vote?
-    {% else %}
-    Unknown voter registration status &mdash; have them register to vote?
     {% endif %}
 </div>
+{% endif %}
 
+{% if voter.has_demographics() %}
 <div>
     <strong>Demographics from Secretary of State:</strong>
     About {{ voter.age() }} years old,
     {% if voter.gender == "M" %}male{% elif voter.gender == "F" %}female{% elif voter.gender == "X" %}nonbinary{% else %}unknown gender{% endif %},
     {% if voter.race == "W" %}White{% elif voter.race == "B" %}Black{% elif voter.race == "H" %}Hispanic{% elif voter.race == "A" %}Asian{% elif voter.race == "O" %}Other race{% else %}Unknown race{% endif %}
 </div>
+{% endif %}
 </section>
 
 
