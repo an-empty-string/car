@@ -48,8 +48,17 @@
 
 {{ note_link("voter", voter.id, text="log conversation") }}
 
+<a href="{{ url_for('voter_act', id=voter.id, act="refused") }}"><button>refused conversation</button></a>
+
+
 {% if g.phonebank %}
+
+    <a href="{{ url_for('voter_act', id=voter.id, act="attempted") }}"><button>attempted/not reached</button></a>
+    <a href="{{ url_for('voter_act', id=voter.id, act="wrong-number") }}"><button>wrong number</button></a>
+
     <a href="{{ url_for('phonebank_next_voter', turf_id=session.phonebank_turf) }}"><button>next voter</button></a>
+{% else %}
+    <a href="{{ url_for('voter_act', id=voter.id, act="wrong-address") }}"><button>voter doesn't live here</button></a>
 {% endif %}
 
 {% if session.admin %}

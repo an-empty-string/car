@@ -40,9 +40,17 @@
 <h2>🗒️ Notes</h2>
 {{ render_notes(door) }}
 
-<a href="{{ url_for('door_attempt', id=door.id) }}"><button>knocked/no response</button></a>
-<a href="{{ url_for('door_dnk', id=door.id) }}" onclick="return confirm('Are you sure you want to mark this door as unsafe/do-not-knock? All canvassers will see this information, and it is difficult to remove.')">
-    <button>mark unsafe/do-not-knock</button>
+<a href="{{ url_for('door_act', id=door.id, act="attempted") }}">
+    <button>knocked/no response</button>
 </a>
-{{ note_link("door", door.id) }}
+
+<a href="{{ url_for('door_act', id=door.id, act="dnk") }}" onclick="return confirm('Are you sure you want to mark this door as unsafe/do-not-knock? All canvassers will see this information, and it is difficult to remove.')">
+    <button>mark as "do not knock"</button>
+</a>
+
+<a href="{{ url_for('door_act', id=door.id, act="inaccessible") }}">
+    <button>mark as inaccessible (gated/etc)</button>
+</a>
+
+{{ note_link("door", door.id, text="add other note...") }}
 {% endblock %}

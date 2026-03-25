@@ -118,6 +118,10 @@ def restrict_voter_turfs(voter):
         restrict_turfs(voter.turf_id)
 
 
+def to_last_turf():
+    return redirect(url_for("show_turf", id=session["last_turf"]))
+
+
 @app.route("/login/", methods=["GET", "POST"])
 @app.route("/login/<login_code>/", methods=["GET"])
 def login(login_code=None):
@@ -411,46 +415,63 @@ def new_door_contact(id: ID):
         commit=True,
     )
     new_voter.add_note(
-        Note(author=g.canvasser, system=True, note="created the voter"), commit=True
+        Note(author=g.canvasser, system=True, note="created the voter"),
+        commit=True,
     )
 
     return redirect(url_for("edit_voter", id=new_voter.id, names_only=True))
 
 
-@app.route("/door/<int:id>/attempted/")
-def door_attempt(id: ID):
+@app.route("/door/<int:id>/act/")
+def door_act(id: ID):
     door = db.get_door_by_id(id)
 
     restrict_turfs(door.turf_id)
 
-    door.add_note(
-        Note(
-            author=g.canvasser,
-            system=True,
-            disposition="attempted",
-            note="knocked, no response",
-        ),
-        commit=True,
-    )
+    act = request.args.get("act")
 
-    return redirect(url_for("show_door", id=id))
+    if act == "dnk":
+        # TODO refactor me?
+        door.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="do-not-contact",
+                note="",
+            ),
+            commit=True,
+        )
 
+        flash("Door marked do-not-contact.")
+        return to_last_turf()
 
-@app.route("/door/<int:id>/do-not-knock/")
-def door_dnk(id: ID):
-    door = db.get_door_by_id(id)
+    elif act == "inaccessible":
+        door.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="attempted",
+                note="attempted/inaccessible",
+            ),
+            commit=True,
+        )
 
-    restrict_turfs(door.turf_id)
+        flash("Door marked attempted/inaccessible.")
+        return to_last_turf()
 
-    door.add_note(
-        Note(
-            author=g.canvasser,
-            system=True,
-            disposition="do-not-contact",
-            note="marked do-not-knock",
-        ),
-        commit=True,
-    )
+    elif act == "attempted":
+        door.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="attempted",
+                note="attempted/no response",
+            ),
+            commit=True,
+        )
+
+        flash("Door marked attempted/no response.")
+        return to_last_turf()
 
     return redirect(url_for("show_door", id=id))
 
@@ -461,14 +482,74 @@ def show_voter(id: ID):
 
     restrict_voter_turfs(voter)
 
-    prev_voter_id = next_voter_id = None
+    return render_template("voter.html", voter=voter)
 
-    return render_template(
-        "voter.html",
-        voter=voter,
-        prev_voter_id=prev_voter_id,
-        next_voter_id=next_voter_id,
-    )
+
+@app.route("/voter/<int:id>/act/")
+def voter_act(id: ID):
+    voter = db.get_voter_by_id(id)
+
+    restrict_voter_turfs(voter)
+
+    act = request.args.get("act")
+
+    if act == "refused":
+        voter.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="refused",
+                note="refused conversation",
+            ),
+            commit=True,
+        )
+
+        flash("Voter marked as refusing conversation.")
+        return to_last_turf()
+
+    elif act == "wrong-address":
+        voter.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition=None,
+                note="canvass: voter not at this address",
+            ),
+            commit=True,
+        )
+
+        flash("Voter marked as not at this address; here's their door.")
+        return redirect(url_for("show_door", id=voter.door_id))
+
+    elif act == "attempted":
+        voter.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="attempted",
+                note="phonebank: attempted/not reached",
+            ),
+            commit=True,
+        )
+
+        flash("Voter marked as attempted/not reached; here's the next voter.")
+        return to_last_turf()
+
+    elif act == "wrong-number":
+        voter.add_note(
+            Note(
+                author=g.canvasser,
+                system=True,
+                disposition="attempted",
+                note="phonebank: attempted/wrong number",
+            ),
+            commit=True,
+        )
+
+        flash("Voter marked as unreachable at this number; here's the next voter.")
+        return to_last_turf()
+
+    return redirect(url_for("show_voter", id=voter.id))
 
 
 def thing_title(model: Model) -> str:
