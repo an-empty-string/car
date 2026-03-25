@@ -145,6 +145,14 @@ header {
     filter: none;
 }
 
+.credits-link, .credits-link:visited {
+    display: block;
+    padding-top: 1em;
+    font-size: 80%;
+    color: #77d;
+    text-decoration: none;
+}
+
 @media(max-width: 800px) {
     .turf-code-small {
         display: none;

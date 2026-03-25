@@ -130,7 +130,10 @@
             <a href="/autolink_toggle/?return={{ request.url|urlencode }}">
                 {% if session.autolink|default(True) %}disable{% else %}enable{% endif %} door links to gmaps
             </a>
+
+            <br />
             {% endif %}
+            <a target="_blank" class="credits-link" href="/credits/">🚗 car by Tris and friends</a>
         </footer>
     </body>
 </html>

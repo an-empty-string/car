@@ -76,9 +76,11 @@ def before_request():
     c = session.get("canvasser")
     if c:
         g.canvasser = c
-    elif request.endpoint not in {"login", "static"} and not request.path.startswith(
-        "/login/"
-    ):
+    elif request.endpoint not in {
+        "login",
+        "credits",
+        "static",
+    } and not request.path.startswith("/login/"):
         if "favicon" in request.url:
             abort(404)
 
@@ -628,6 +630,11 @@ def activity_feed():
     ns.sort(reverse=True)
 
     return render_template("activity_feed.html", ns=ns)
+
+
+@app.route("/credits/")
+def credits():
+    return render_template("credits.html")
 
 
 if __name__ == "__main__":
