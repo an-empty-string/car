@@ -339,6 +339,20 @@ class Voter(Model):
     def has_demographics(self):
         return self.birthdate and self.gender and self.race
 
+    def should_hide(self):
+        if self.firstname != "New" or self.lastname != "Voter":
+            return False
+
+        system_count = 0
+        for n in self.notes:
+            if n.system:
+                system_count += 1
+
+            else:
+                return False
+
+        return system_count < 2
+
 
 def is_valid_ordering(models: Sequence[Model]) -> bool:
     return all(m.id == idx for idx, m in enumerate(models))

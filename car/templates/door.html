@@ -25,6 +25,7 @@
 <ul class="secretly-a-table">
     {% for id in door.voters %}
     {% with voter = db.get_voter_by_id(id) %}
+    {% if not voter.should_hide() %}
     <li>
         {{ voter_link(id, turf) }}{% if voter.has_demographics() %} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% endif %}
         {% with disp, note = voter.last_disposition_with_note() %}
@@ -33,6 +34,7 @@
         {% endif %}
         {% endwith %}
     </li>
+    {% endif %}
     {% endwith %}
     {% endfor %}
 </ul>
