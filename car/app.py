@@ -391,7 +391,8 @@ def show_door(id: ID):
 
     restrict_turfs(door.turf_id)
 
-    session["last_door"] = id
+    if "HX-Preloaded" not in request.headers:
+        session["last_door"] = id
 
     turf_doors = db.get_turf_by_id(door.turf_id).doors
     idx = turf_doors.index(id)

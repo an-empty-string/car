@@ -14,7 +14,7 @@
             <option value="save">[Save the text I typed as a quick note]</option>
         </select>
         <script>
-            addEventListener("DOMContentLoaded", async function() {
+            (async function() {
                 const rdrQuickNotes = await fetch('/static/quicknotes.json')
                 const rdQuickNotes = await rdrQuickNotes.json();
                 const lsrQuickNotes = localStorage.getItem("myquicknotes");
@@ -76,7 +76,7 @@
                     }
                     document.getElementById("quicknote").value = "i";
                 });
-            });
+            })();
         </script>
     </div>
 
