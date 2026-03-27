@@ -283,6 +283,16 @@ def autolink_toggle():
     return redirect(request.args.get("return", "/"))
 
 
+@app.route("/sportscar_toggle/")
+def sportscar_toggle():
+    if "sports_car" in session:
+        del session["sports_car"]
+    else:
+        session["sports_car"] = 1
+
+    return redirect(request.args.get("return", "/"))
+
+
 @app.route("/turf/<int:id>/")
 def show_turf(id: ID):
     restrict_turfs(id)

@@ -22,7 +22,7 @@
 {% endwith %}
 
 <h2>👨 Voters</h2>
-<ul class="secretly-a-table">
+<ul class="secretly-a-table" hx-boost="true">
     {% for id in door.voters %}
     {% with voter = db.get_voter_by_id(id) %}
     {% if not voter.should_hide() %}

@@ -38,7 +38,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 {% else %}
 
 {% for order_key, doors in pretty_ordered_doors %}
-<ul class="secretly-a-table">
+<ul class="secretly-a-table" {% if session.sports_car|default(false) %}hx-boost="true"{% endif %}>
 <li>
     <strong>
     {% if order_key[2] != "" %}
@@ -50,7 +50,9 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 </li>
 
     {% for door in doors %}
-    <li{% if door.id == session.last_door %} class="last-door"{% endif %}>{{ door_link(door.id, turf) }}</li>
+    <li{% if door.id == session.last_door %} class="last-door"{% endif %}>
+        {{ door_link(door.id, turf) }}
+    </li>
     {% endfor %}
 </ul>
 {% endfor %}

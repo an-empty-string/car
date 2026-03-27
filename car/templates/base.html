@@ -22,7 +22,7 @@
 {% endmacro %}
 
 {% macro note_link(typ, id, text="add new note") %}
-<a href="{{ url_for('note_obj', typ=typ, id=id) }}"><button>{{ text }}</button></a>
+<a href="{{ url_for('note_obj', typ=typ, id=id) }}" hx-boost="true" preload="preload:init"><button>{{ text }}</button></a>
 {% endmacro %}
 
 {% macro turf_link(t) %}
@@ -35,7 +35,7 @@
 
 {% macro door_link(d, turf=None) %}
 {% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, turf) %}
-<a href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
+<a {% if session.sports_car|default(false) %}preload="preload:init"{% endif %} href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
     {{ door.address }}{% if door.unit %} &ndash; {{ door.unit }}{% endif %}
 
     {% if turf and disp %}<span class="disposition">({{ dispositions[disp] }})</span>{% endif %}
@@ -46,7 +46,7 @@
 {% macro voter_link(v, turf=None) %}
 {% with voter = db.get_voter_by_id(v) %}
 {% with d = db.get_disposition_for_type_and_id("voter", v, turf) %}
-<a href="{{ url_for('show_voter', id=v) }}" data-disposition="{{ d }}">
+<a preload="preload:init" href="{{ url_for('show_voter', id=v) }}" data-disposition="{{ d }}">
     {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}
     {{ render_disposition(d) }}
 </a>
@@ -74,6 +74,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="/static/mycoolstylesheet.css">
 
+        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/htmx-ext-preload@2.1.2" integrity="sha384-PRIcY6hH1Y5784C76/Y8SqLyTanY9rnI3B8F3+hKZFNED55hsEqMJyqWhp95lgfk" crossorigin="anonymous"></script>
+
         <!-- cribbed from rose, thank u hunter <3 -->
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
                     integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
@@ -86,7 +89,7 @@
         <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     </head>
-    <body>
+    <body hx-ext="preload">
         <header>
             {% if session.canvasser %}
             Hi, {{ session.canvasser }}! &middot;
@@ -129,8 +132,11 @@
 
             <a href="/autolink_toggle/?return={{ request.url|urlencode }}">
                 {% if session.autolink|default(True) %}disable{% else %}enable{% endif %} door links to gmaps
-            </a>
+            </a> &middot;
 
+            <a href="/sportscar_toggle/?return={{ request.url|urlencode }}">
+                {% if session.sports_car|default(False) %}switch to normal car{% else %}switch to sports car{% endif %}
+            </a>
             <br />
             {% endif %}
             <a target="_blank" class="credits-link" href="/credits/">🚗 car by Tris and friends</a>
