@@ -102,6 +102,14 @@ def before_request():
         return redirect(url_for("login"))
 
 
+@app.after_request
+def after_request(resp):
+    if request.method == "POST" or getattr(g, "commit", None):
+        session["last_commit"] = time.time()
+
+    return resp
+
+
 def restrict_turfs(turf_id):
     if "canvasser" not in session:
         abort(403)
@@ -302,12 +310,13 @@ def sportscar_toggle():
     if "sports_car" in session:
         del session["sports_car"]
     else:
-        session["sports_car"] = 1
+        session["sports_car"] = 0
 
     return redirect(request.args.get("return", "/"))
 
 
 @app.route("/turf/<int:id>/")
+@browser_cache
 def show_turf(id: ID):
     restrict_turfs(id)
     session["last_turf"] = id
@@ -459,7 +468,10 @@ def door_act(id: ID):
 
     restrict_turfs(door.turf_id)
 
+    session["last_door"] = id
+
     act = request.args.get("act")
+    g.commit = True
 
     if act == "dnk":
         # TODO refactor me?
@@ -522,6 +534,9 @@ def voter_act(id: ID):
     voter = db.get_voter_by_id(id)
 
     restrict_voter_turfs(voter)
+
+    session["last_door"] = voter.door_id
+    g.commit = True
 
     act = request.args.get("act")
 
@@ -603,8 +618,10 @@ def note_obj(typ: str, id: ID):
         restrict_turfs(id)
     elif typ == "door":
         restrict_turfs(db.get_door_by_id(id).turf_id)
+        session["last_door"] = id
     elif typ == "voter":
-        restrict_voter_turfs(db.get_voter_by_id(id))
+        restrict_voter_turfs(v := db.get_voter_by_id(id))
+        session["last_door"] = v.door_id
     # FIXME turf restriction
 
     assert is_valid_type(typ)

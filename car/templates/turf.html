@@ -38,7 +38,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 {% else %}
 
 {% for order_key, doors in pretty_ordered_doors %}
-<ul class="secretly-a-table" {% if session.sports_car|default(false) %}hx-boost="true"{% endif %}>
+<ul class="secretly-a-table" hx-boost="true">
 <li>
     <strong>
     {% if order_key[2] != "" %}
@@ -79,7 +79,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
     var layer = L.geoJSON(geodoors, {
         onEachFeature: function(feature, layer) {
             layer.bindPopup(
-                `<a {% if session.sports_car|default(false) %}hx-boost="true" preload="preload:init"{% endif %} href="${feature.properties.url}">${feature.properties.address}</a><br>${feature.properties.n_voters} voter(s)`
+                `<a hx-boost="true" preload="preload:init" href="${feature.properties.url}">${feature.properties.address}</a><br>${feature.properties.n_voters} voter(s)`
             );
         },
         pointToLayer: function(feature, latlng) {
