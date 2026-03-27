@@ -75,7 +75,7 @@ def browser_cache(f):
         r = f(*a, **k)
         resp = make_response(r)
         if request.headers.get("HX-Preloaded"):
-            resp.headers["Cache-Control"] = "private, max-age=60"
+            resp.headers["Cache-Control"] = "private, max-age=600"
         return resp
 
     return wrapped
