@@ -323,6 +323,9 @@ def show_turf(id: ID):
                     "unit": door.unit,
                     "n_voters": len(door.voters),
                     "url": url_for("show_door", id=door.id),
+                    "disposition": db.get_disposition_for_type_and_id(
+                        "door", door.id, turf
+                    ),
                 },
             }
         )

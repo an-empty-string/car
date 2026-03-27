@@ -77,17 +77,42 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
     }).addTo(map);
 
     var layer = L.geoJSON(geodoors, {
-        onEachFeature: ((feature, layer) => {
+        onEachFeature: function(feature, layer) {
             layer.bindPopup(
-                `<a href="${feature.properties.url}">${feature.properties.address}</a><br>${feature.properties.n_voters} voter(s)`
-            )
-        }),
+                `<a {% if session.sports_car|default(false) %}hx-boost="true" preload="preload:init"{% endif %} href="${feature.properties.url}">${feature.properties.address}</a><br>${feature.properties.n_voters} voter(s)`
+            );
+        },
+        pointToLayer: function(feature, latlng) {
+            var color = "black";
+            console.log(feature.properties);
+            switch(feature.properties.disposition) {
+                case "refused":
+                case "do-not-contact":
+                    color = "red";
+                    break;
+
+                case "done":
+                case "attempted":
+                    color = "green";
+                    break;
+            }
+
+            return L.circleMarker(latlng, {
+                radius: 8,
+                color: color,
+                fillOpacity: 0.5,
+            });
+        }
     });
 
     layer.addTo(map);
     var bounds = layer.getBounds();
     console.log(bounds);
     map.fitBounds(bounds);
+
+    map.on("popupopen", function() {
+        htmx.process(document.querySelector(".leaflet-popup-content"));
+    });
 
     L.control.locate().addTo(map);
 </script>
