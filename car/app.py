@@ -1,4 +1,5 @@
 # stdlib
+import functools
 import itertools
 import json
 import os
@@ -14,6 +15,7 @@ from flask import (
     abort,
     flash,
     g,
+    make_response,
     redirect,
     render_template,
     request,
@@ -65,6 +67,18 @@ geoturfs = {}
 if os.path.exists("turfs.geojson"):
     with open("turfs.geojson") as f:
         geoturfs = json.load(f)
+
+
+def browser_cache(f):
+    @functools.wraps(f)
+    def wrapped(*a, **k):
+        r = f(*a, **k)
+        resp = make_response(r)
+        if request.headers.get("HX-Preloaded"):
+            resp.headers["Cache-Control"] = "private; max-age=60"
+        return resp
+
+    return wrapped
 
 
 @app.before_request
@@ -387,6 +401,7 @@ def finish_turf(id):
 
 
 @app.route("/door/<int:id>/")
+@browser_cache
 def show_door(id: ID):
     door = db.get_door_by_id(id)
     if door.turf_id is None:
@@ -493,6 +508,7 @@ def door_act(id: ID):
 
 
 @app.route("/voter/<int:id>/")
+@browser_cache
 def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
 
@@ -581,6 +597,7 @@ def thing_title(model: Model) -> str:
 
 
 @app.route("/<typ>/<int:id>/note/", methods=["GET", "POST"])
+@browser_cache
 def note_obj(typ: str, id: ID):
     if typ == "turf":
         restrict_turfs(id)
