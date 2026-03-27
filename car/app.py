@@ -322,7 +322,7 @@ def show_turf(id: ID):
 
     turf = db.get_turf_by_id(id)
 
-    if session["last_turf"] != id:
+    if session.get("last_turf") != id:
         session["last_turf"] = id
 
         if turf.phone_key:
