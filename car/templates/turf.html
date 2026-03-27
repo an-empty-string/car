@@ -119,16 +119,35 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 {% endif %}
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        let scrollPos = localStorage[location.pathname + "scroll"];
-        console.log(scrollPos);
-        if(scrollPos) {
-            document.body.scrollTop = parseInt(scrollPos);
-        }
+    var done = false;
+    var doScrollListen = false;
+    document.querySelectorAll("a").forEach((x) => x.addEventListener("click", () => {
+        doScrollListen = false;
+    }));
 
-        window.addEventListener("scroll", function() {
+    function updateScroll() {
+        if(location.pathname.indexOf("/turf/") === -1) return;
+        setTimeout(function() {
+            doScrollListen = true
+            let scrollPos = localStorage[location.pathname + "scroll"];
+            console.log("load", scrollPos);
+            if(scrollPos) {
+                document.body.scrollTop = parseInt(scrollPos);
+            }
+        }, 20);
+    };
+
+    if(!done) {
+        document.body.addEventListener("htmx:afterSettle", updateScroll);
+        updateScroll();
+        done = true;
+    }
+
+    window.addEventListener("scroll", function() {
+        if(doScrollListen) {
+            console.log("save", document.body.scrollTop);
             localStorage[location.pathname + "scroll"] = "" + document.body.scrollTop;
-        });
+        }
     });
 </script>
 {% endblock %}

@@ -27,7 +27,7 @@
 
 {% macro turf_link(t) %}
 {% with turf = db.get_turf_by_id(t) %}
-<a hx-boost="true" preload="preload:init" href="{{ url_for('show_turf', id=t) }}">
+<a hx-swap="innerHTML show:no-scroll" hx-boost="true" preload="preload:init" href="{{ url_for('show_turf', id=t) }}">
     turf
 </a>
 {% endwith %}
@@ -35,7 +35,7 @@
 
 {% macro door_link(d, turf=None) %}
 {% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, turf) %}
-<a preload="preload:init" href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
+<a preload="preload:init" hx-boost="true" href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
     {{ door.address }}{% if door.unit %} &ndash; {{ door.unit }}{% endif %}
 
     {% if turf and disp %}<span class="disposition">({{ dispositions[disp] }})</span>{% endif %}
