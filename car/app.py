@@ -104,7 +104,7 @@ def before_request():
 
 @app.after_request
 def after_request(resp):
-    if request.method == "POST" or getattr(g, "commit", None):
+    if request.method == "POST" or hasattr(g, "commit"):
         session["last_commit"] = time.time()
 
     return resp
@@ -319,17 +319,21 @@ def sportscar_toggle():
 @browser_cache
 def show_turf(id: ID):
     restrict_turfs(id)
-    session["last_turf"] = id
 
     turf = db.get_turf_by_id(id)
 
-    if turf.phone_key:
-        session["phonebank"] = True
-        session["phonebank_turf"] = turf.id
-        return redirect(url_for("phonebank_next_voter", turf_id=id))
+    if session["last_turf"] != id:
+        session["last_turf"] = id
 
-    else:
-        session["phonebank"] = False
+        if turf.phone_key:
+            session["phonebank"] = True
+            session["phonebank_turf"] = turf.id
+
+        else:
+            session["phonebank"] = False
+
+    if turf.phone_key:
+        return redirect(url_for("phonebank_next_voter", turf_id=id))
 
     geodoors: list[dict[str, Any]] = []
     for door_id in turf.doors:
@@ -418,9 +422,6 @@ def show_door(id: ID):
 
     restrict_turfs(door.turf_id)
 
-    if "HX-Preloaded" not in request.headers:
-        session["last_door"] = id
-
     turf_doors = db.get_turf_by_id(door.turf_id).doors
     idx = turf_doors.index(id)
     prev_door_id = next_door_id = None
@@ -468,9 +469,9 @@ def door_act(id: ID):
 
     restrict_turfs(door.turf_id)
 
-    session["last_door"] = id
-
     act = request.args.get("act")
+
+    session["last_door"] = id
     g.commit = True
 
     if act == "dnk":
@@ -618,10 +619,12 @@ def note_obj(typ: str, id: ID):
         restrict_turfs(id)
     elif typ == "door":
         restrict_turfs(db.get_door_by_id(id).turf_id)
-        session["last_door"] = id
+        if request.method == "POST":
+            session["last_door"] = id
     elif typ == "voter":
         restrict_voter_turfs(v := db.get_voter_by_id(id))
-        session["last_door"] = v.door_id
+        if request.method == "POST":
+            session["last_door"] = v.door_id
     # FIXME turf restriction
 
     assert is_valid_type(typ)
