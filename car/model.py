@@ -316,6 +316,7 @@ class Voter(Model):
     landlinephone: str = ""
     gender: str = ""
     race: str = ""
+    party: str = ""
     birthdate: str = ""
     regdate: str = ""
     bestphone: str = ""

@@ -25,10 +25,12 @@
 
 {% if voter.has_demographics() %}
 <div>
-    <strong>Demographics from Secretary of State:</strong>
+    <strong>Demographics from L2:</strong>
     About {{ voter.age() }} years old,
     {% if voter.gender == "M" %}male{% elif voter.gender == "F" %}female{% elif voter.gender == "X" %}nonbinary{% else %}unknown gender{% endif %},
     {% if voter.race == "W" %}White{% elif voter.race == "B" %}Black{% elif voter.race == "H" %}Hispanic{% elif voter.race == "A" %}Asian{% elif voter.race == "O" %}Other race{% else %}Unknown race{% endif %}
+    <br />
+    <strong>Modeled party from L2:</strong> {{ voter.party }}
 </div>
 {% endif %}
 </section>
