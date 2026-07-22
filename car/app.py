@@ -110,7 +110,7 @@ def after_request(resp):
     return resp
 
 
-def restrict_turfs(turf_id):
+def ensure_turf_accessible(turf_id):
     if "canvasser" not in session:
         abort(403)
 
@@ -130,14 +130,30 @@ def restrict_admin():
     abort(403)
 
 
-def restrict_voter_turfs(voter):
+def ensure_voter_accessible(voter):
+    if session["admin"]:
+        return
+
     if g.phonebank:
         if voter.id == session["chosen_voter"]:
             return
 
-        restrict_turfs(voter.phonebankturf)
-    else:
-        restrict_turfs(voter.turf_id)
+    turf_id = session.get("last_turf")
+    ensure_turf_accessible(turf_id)
+
+    if voter.id not in db.get_turf_by_id(turf_id).voters:
+        abort(403)
+
+
+def ensure_door_accessible(door):
+    if session["admin"]:
+        return
+
+    turf_id = session.get("last_turf")
+    ensure_turf_accessible(turf_id)
+
+    if door.id not in db.get_turf_by_id(turf_id).doors:
+        abort(403)
 
 
 def to_last_turf():
@@ -318,7 +334,7 @@ def sportscar_toggle():
 @app.route("/turf/<int:id>/")
 @browser_cache
 def show_turf(id: ID):
-    restrict_turfs(id)
+    ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
 
@@ -379,7 +395,7 @@ def show_turf(id: ID):
 
 @app.route("/turf/<int:id>/start/")
 def start_turf(id):
-    restrict_turfs(id)
+    ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
     turf.add_note(
@@ -397,7 +413,7 @@ def start_turf(id):
 
 @app.route("/turf/<int:id>/finish/")
 def finish_turf(id):
-    restrict_turfs(id)
+    ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
     turf.add_note(
@@ -417,12 +433,10 @@ def finish_turf(id):
 @browser_cache
 def show_door(id: ID):
     door = db.get_door_by_id(id)
-    if door.turf_id is None:
-        return "no turf associated with door"
 
-    restrict_turfs(door.turf_id)
+    ensure_door_accessible(door)
 
-    turf_doors = db.get_turf_by_id(door.turf_id).doors
+    turf_doors = db.get_turf_by_id(session["last_turf"]).doors
     idx = turf_doors.index(id)
     prev_door_id = next_door_id = None
 
@@ -443,7 +457,7 @@ def show_door(id: ID):
 def new_door_contact(id: ID):
     door = db.get_door_by_id(id)
 
-    restrict_turfs(door.turf_id)
+    ensure_door_accessible(door)
 
     new_voter = db.save_voter(
         Voter(
@@ -451,7 +465,6 @@ def new_door_contact(id: ID):
             firstname="New",
             lastname="Voter",
             door_id=id,
-            turf_id=door.turf_id,
         ),
         commit=True,
     )
@@ -467,7 +480,7 @@ def new_door_contact(id: ID):
 def door_act(id: ID):
     door = db.get_door_by_id(id)
 
-    restrict_turfs(door.turf_id)
+    ensure_door_accessible(door)
 
     act = request.args.get("act")
 
@@ -525,7 +538,7 @@ def door_act(id: ID):
 def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
 
-    restrict_voter_turfs(voter)
+    ensure_voter_accessible(voter)
 
     return render_template("voter.html", voter=voter)
 
@@ -534,7 +547,7 @@ def show_voter(id: ID):
 def voter_act(id: ID):
     voter = db.get_voter_by_id(id)
 
-    restrict_voter_turfs(voter)
+    ensure_voter_accessible(voter)
 
     session["last_door"] = voter.door_id
     g.commit = True
@@ -616,13 +629,13 @@ def thing_title(model: Model) -> str:
 @browser_cache
 def note_obj(typ: str, id: ID):
     if typ == "turf":
-        restrict_turfs(id)
+        ensure_turf_accessible(id)
     elif typ == "door":
-        restrict_turfs(db.get_door_by_id(id).turf_id)
+        ensure_door_accessible(db.get_door_by_id(id))
         if request.method == "POST":
             session["last_door"] = id
     elif typ == "voter":
-        restrict_voter_turfs(v := db.get_voter_by_id(id))
+        ensure_voter_accessible(v := db.get_voter_by_id(id))
         if request.method == "POST":
             session["last_door"] = v.door_id
     # FIXME turf restriction
@@ -663,7 +676,7 @@ def note_obj(typ: str, id: ID):
 def edit_voter(id: ID):
     voter = db.get_voter_by_id(id)
 
-    restrict_voter_turfs(voter)
+    ensure_voter_accessible(voter)
 
     if request.method == "GET":
         return render_template(
@@ -705,7 +718,7 @@ def edit_voter(id: ID):
 
 @app.route("/next/<int:turf_id>/")
 def phonebank_next_voter(turf_id):
-    restrict_turfs(turf_id)
+    ensure_turf_accessible(turf_id)
     turf = db.get_turf_by_id(turf_id)
 
     if not turf.phone_key:

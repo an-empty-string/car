@@ -32,7 +32,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 {% if false %}
 <ul class="secretly-a-table">
     {% for door in turf.doors %}
-    <li>{{ door_link(door, turf) }}</li>
+    <li>{{ door_link(door, True) }}</li>
     {% endfor %}
 </ul>
 {% else %}
@@ -51,7 +51,7 @@ If you want to knock doors in this turf, please <a href="{{ url_for('start_turf'
 
     {% for door in doors %}
     <li{% if door.id == session.last_door %} class="last-door"{% endif %}>
-        {{ door_link(door.id, turf) }}
+        {{ door_link(door.id, True) }}
     </li>
     {% endfor %}
 </ul>

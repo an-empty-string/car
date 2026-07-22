@@ -238,7 +238,6 @@ class Turf(Model):
 class Door(Model):
     TYPE: ClassVar[DatabaseType] = "door"
 
-    turf_id: ID | None = None
     address: str = ""
     unit: str = ""
     city: str = ""
@@ -308,7 +307,6 @@ class Voter(Model):
     TYPE: ClassVar[DatabaseType] = "voter"
 
     door_id: ID | None = None
-    turf_id: ID | None = None
     statevoterid: str = ""
     activeinactive: str = ""
     firstname: str = ""
@@ -320,7 +318,6 @@ class Voter(Model):
     race: str = ""
     birthdate: str = ""
     regdate: str = ""
-    phonebankturf: ID | None = None
     bestphone: str = ""
 
     def age(self):
@@ -470,13 +467,6 @@ class Database(BaseDatabase):
                         maybe_children.remove(child_id)
 
         _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
-        _fixup_one_backref_set(
-            self.voters,
-            "voters",
-            {t.id: t for t in self.turfs if not t.phone_key},
-            "turf_id",
-        )
-        _fixup_one_backref_set(self.doors, "doors", self.turfs, "turf_id")
 
     def assert_constraints(self):
         if any(

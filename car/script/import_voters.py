@@ -55,7 +55,6 @@ for line in lines:
     if door_key not in doors:
         doors[door_key] = database.save_door(
             Door(
-                turf_id=0,  # FIXME: None
                 address=addr,
                 unit=unit,
                 city=city,
@@ -81,7 +80,6 @@ for line in lines:
             regdate=line["Date of Registration"],
             created_by="system import",
             door_id=door.id,
-            turf_id=0,  # FIXME: None,
             bestphone=voter_phone,
         )
     )

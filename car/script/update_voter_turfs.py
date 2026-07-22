@@ -43,6 +43,10 @@ def sync_turf_props():
         else:
             turf = database.get_turf_by_id(car_id)
             turf.desc = name
+
+            turf.voters = []
+            turf.doors = []
+
             database.save_turf(turf)
 
     conn.commit()
@@ -69,6 +73,8 @@ def set_voter_turfs():
     with open("geocoded_doors_turfs_tmp.csv") as f:
         turfed_doors = list(csv.DictReader(f))
 
+    turfs = {}
+
     for turfed_door in turfed_doors:
         # if there is no car_id, it's not actually turfed / we can't update it
         if not turfed_door["car_id"]:
@@ -79,15 +85,22 @@ def set_voter_turfs():
         car_door = database.get_door_by_id(door_id)
         new_turf_id = int(turfed_door["car_id"])
 
+        if new_turf_id not in turfs:
+            turfs[new_turf_id] = database.get_turf_by_id(new_turf_id)
+
+        new_turf = turfs[new_turf_id]
+
         # move the door to its new turf
-        car_door.turf_id = new_turf_id
-        database.save_door(car_door)
+        print(f"add door {car_door.id} to turf {new_turf_id}")
+        new_turf.doors.append(car_door.id)
 
         # move every voter on this door to their new turf
         for voter_id in car_door.voters:
-            car_voter = database.get_voter_by_id(voter_id)
-            car_voter.turf_id = new_turf_id
-            database.save_voter(car_voter)
+            print(f"add voter {voter_id} to turf {new_turf_id}")
+            new_turf.voters.append(voter_id)
+
+    for turf in turfs.values():
+        database.save_turf(turf)
 
 
 # routing "algorithm"
@@ -141,6 +154,8 @@ def reorder_doors(turf: Turf):
 
         routes.append((total_score, start_id, result_ids))
 
+    print(routes)
+
     routes.sort()
     turf.doors = routes[0][2]
 
@@ -167,6 +182,6 @@ if __name__ == "__main__":
     sync_turf_props()
     set_voter_turfs()
     database.fixup_backrefs()
-    reorder_all_doors()
+    # reorder_all_doors()
     assign_login_codes()
     database.commit()

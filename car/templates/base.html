@@ -25,16 +25,14 @@
 <a href="{{ url_for('note_obj', typ=typ, id=id) }}" hx-boost="true" preload="preload:init"><button>{{ text }}</button></a>
 {% endmacro %}
 
-{% macro turf_link(t) %}
-{% with turf = db.get_turf_by_id(t) %}
-<a hx-swap="innerHTML show:no-scroll" hx-boost="true" preload="preload:init" href="{{ url_for('show_turf', id=t) }}">
+{% macro turf_link() %}
+<a hx-swap="innerHTML show:no-scroll" hx-boost="true" preload="preload:init" href="{{ url_for('show_turf', id=session.last_turf) }}">
     turf
 </a>
-{% endwith %}
 {% endmacro %}
 
-{% macro door_link(d, turf=None) %}
-{% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, turf) %}
+{% macro door_link(d, turf=False) %}
+{% with door = db.get_door_by_id(d), disp = db.get_disposition_for_type_and_id("door", d, db.get_turf_by_id(session.last_turf) if turf else None) %}
 <a preload="preload:init" hx-boost="true" href="{{ url_for('show_door', id=d) }}"{% if turf %} data-disposition="{{ disp }}"{% endif %}>
     {{ door.address }}{% if door.unit %} &ndash; {{ door.unit }}{% endif %}
 
@@ -43,9 +41,9 @@
 {% endwith %}
 {% endmacro %}
 
-{% macro voter_link(v, turf=None) %}
+{% macro voter_link(v, turf=False) %}
 {% with voter = db.get_voter_by_id(v) %}
-{% with d = db.get_disposition_for_type_and_id("voter", v, turf) %}
+{% with d = db.get_disposition_for_type_and_id("voter", v, db.get_turf_by_id(session.last_turf) if turf else None) %}
 <a preload="preload:init" href="{{ url_for('show_voter', id=v) }}" data-disposition="{{ d }}">
     {{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}
     {{ render_disposition(d) }}

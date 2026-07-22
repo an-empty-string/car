@@ -4,7 +4,7 @@
 <nav>
     <ul id="door-crumbs">
         {% if not g.phonebank %}
-        <li>back to {{ turf_link(voter.turf_id) }}</li>
+        <li>back to {{ turf_link() }}</li>
         <li>back to {{ door_link(voter.door_id) }}</li>
         {% endif %}
     </ul>

@@ -1,11 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Door: {{ door.address }} {{ door.unit }}{% endblock %}
 {% block content %}
-{% set turf = db.get_turf_by_id(door.turf_id) %}
-
 <nav>
     <ul id="door-crumbs">
-        <li>back to {{ turf_link(door.turf_id) }}</li>
+        <li>back to {{ turf_link() }}</li>
     </ul>
 </nav>
 <h1>
@@ -27,7 +25,7 @@
     {% with voter = db.get_voter_by_id(id) %}
     {% if not voter.should_hide() %}
     <li>
-        {{ voter_link(id, turf) }}{% if voter.has_demographics() %} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% endif %}
+        {{ voter_link(id, True) }}{% if voter.has_demographics() %} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% endif %}
         {% with disp, note = voter.last_disposition_with_note() %}
         {% if disp %}
         <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
