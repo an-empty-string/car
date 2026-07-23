@@ -1,13 +1,13 @@
 import collections
 import functools
 
-from .app import db
-
 phone_keys = ["cellphone", "landlinephone", "bestphone"]
 
 
 @functools.cache
 def phone_households():
+    from .app import db
+
     result = collections.defaultdict(list)
     for phone_key in phone_keys:
         for voter in db.voters:
