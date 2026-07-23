@@ -1,0 +1,7 @@
+- name: phonebank
+  props:
+    desc: Phonebanking
+    phone_key: default
+  rule: >
+    likely_mid_term_voter >= 30
+    and responsiveness_live >= 90

@@ -296,11 +296,6 @@ def index():
     )
 
 
-@app.route("/phonebank/")
-def phonebank_index():
-    return render_template("index.html", geoturfs={})
-
-
 @app.route("/map_toggle/")
 def map_toggle():
     if "use_map" in session:
