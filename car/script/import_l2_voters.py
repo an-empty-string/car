@@ -1,4 +1,6 @@
 import csv
+import json
+from typing import Any
 
 from ..model import Database, Door, Voter
 
@@ -10,6 +12,7 @@ lines = csv.DictReader(f)
 database = Database()
 
 doors: dict[tuple[str, str, str], Door] = {}
+targeting_data: dict[str, Any] = {}
 
 
 def fix_date(x):
@@ -24,6 +27,13 @@ def float_or_none(x):
         return None
 
     return float(x)
+
+
+def int_or_none(x):
+    if not x:
+        return None
+
+    return int(x)
 
 
 def race(x):
@@ -65,6 +75,17 @@ for line in lines:
             )
         )
 
+    targeting_data[line["Voters_StateVoterID"]] = {
+        "scores": {
+            key: int_or_none(value)
+            for key, value in line.items()
+            if key.startswith("hs_")
+        },
+        "gender": line["Voters_Gender"],
+        "party": line["hf_ideology_overall_party"],
+        "age": int_or_none(line["Voters_Age"]),
+    }
+
     database.save_voter(
         Voter(
             statevoterid=line["Voters_StateVoterID"],
@@ -91,3 +112,6 @@ for line in lines:
 
 database.commit(backup=False)
 f.close()
+
+with open("targeting_data.json", "w") as f:
+    json.dump(targeting_data, f)

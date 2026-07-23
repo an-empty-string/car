@@ -223,6 +223,7 @@ class Turf(Model):
     TYPE: ClassVar[DatabaseType] = "turf"
 
     desc: str = ""
+    external_id: str = ""
     phone_key: str = ""
     login_code: str = ""
     doors: list[ID] = []
