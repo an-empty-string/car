@@ -33,6 +33,13 @@ h2,h3 {
     border-bottom:1px dashed #ccc;
     margin-top:48px;
 }
+
+h1.comfy {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    border: none;
+}
+
 p {
     margin-top:12px;
     margin-bottom:6px;

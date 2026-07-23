@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}car parts{% endblock %}
+
+{% macro render_setting(setting, text) %}
+<div class="setting-row">
+    <label>
+        <input type="checkbox" name="{{ setting }}" {% if session[setting] %}checked="checked"{% endif %} />
+        {{ text }}
+    </label>
+</div>
+{% endmacro %}
+
+{% block content %}
+<h1 class="comfy">🔧 Settings</h1>
+<form method="POST">
+    {{ render_setting("use_map", "Enable turf maps") }}
+    {{ render_setting("autolink", "Door addresses link to Google Maps") }}
+    {{ render_setting("zoom_phone", "Call links use Zoom Phone") }}
+
+    <button type="submit">Save and return</button>
+</form>
+{% endblock %}

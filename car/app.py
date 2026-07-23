@@ -42,6 +42,7 @@ from .model import (
 )
 
 PHONEBANK_MIN_DELAY = 60 * 15
+SETTINGS_KEYS = ["use_map", "autolink", "zoom_phone"]
 
 app = Flask(__name__)
 cache = utils.MemoryCache()
@@ -184,6 +185,13 @@ def login(login_code=None):
 
         pw = pw.strip()
 
+    settings_data = request.cookies.get("settings")
+    if settings_data:
+        settings_data = json.loads(settings_data)
+        for key in SETTINGS_KEYS:
+            if key in settings_data:
+                session[key] = settings_data[key]
+
     session["admin"] = False
 
     if request.form.get("password") == password:
@@ -226,6 +234,10 @@ def login(login_code=None):
 
 @app.route("/logout/")
 def logout():
+    session.pop("canvasser")
+    session.pop("turfs")
+    session.pop("admin")
+
     session.clear()
 
     flash("Logged out!")
@@ -303,34 +315,30 @@ def index():
     )
 
 
-@app.route("/map_toggle/")
-def map_toggle():
-    if "use_map" in session:
-        del session["use_map"]
-    else:
-        session["use_map"] = 0
+@app.route("/settings/", methods=["GET", "POST"])
+def settings():
+    settings_data = {}
 
-    return redirect(request.args.get("return", "/"))
+    if request.method == "POST":
+        for key in SETTINGS_KEYS:
+            if request.form.get(key):
+                settings_data[key] = 1
+            else:
+                settings_data[key] = 0
 
+        session.update(settings_data)
+        flash("Settings updated!")
+        resp = make_response(redirect(request.args.get("return", "/")))
+        resp.set_cookie(
+            "settings",
+            json.dumps(settings_data),
+            max_age=86400 * 365,
+            expires=time.time() + 86400 * 365,
+        )
 
-@app.route("/autolink_toggle/")
-def autolink_toggle():
-    if "autolink" in session:
-        del session["autolink"]
-    else:
-        session["autolink"] = 0
+        return resp
 
-    return redirect(request.args.get("return", "/"))
-
-
-@app.route("/sportscar_toggle/")
-def sportscar_toggle():
-    if "sports_car" in session:
-        del session["sports_car"]
-    else:
-        session["sports_car"] = 0
-
-    return redirect(request.args.get("return", "/"))
+    return render_template("settings.html")
 
 
 @app.route("/turf/<int:id>/")
