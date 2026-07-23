@@ -1,7 +1,7 @@
 FROM python:3-alpine
 
 RUN pip install gunicorn
-RUN apk add -y libqrencode-tools
+RUN apk add libqrencode-tools
 RUN mkdir /var/lib/car-db
 ENV CAR_DATA_PATH=/var/lib/car-db
 WORKDIR $CAR_DATA_PATH
