@@ -39,6 +39,18 @@
 <h2>🗒️ Conversations</h2>
 {{ render_notes(voter) }}
 
+{% if g.phonebank and phone_household %}
+<h2>🏡 Household</h2>
+{% for phone, other_voters in phone_household.items() %}
+<ul class="secretly-a-table">
+    <li><small><em>also reachable at {{ phone }}:</em></small></li>
+    {% for other_voter in other_voters %}
+    <li>{{ voter_in_household(other_voter) }}</li>
+    {% endfor %}
+</ul>
+{% endfor %}
+{% endif %}
+
 <h2>📋️ Contact</h2>
 {% if g.phonebank %}
     {% if voter.bestphone %}{{ phone_link("best", voter.bestphone) }}{% endif %}

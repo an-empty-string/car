@@ -24,7 +24,7 @@ from flask import (
 )
 
 # project
-from . import utils
+from . import householding, utils
 from .model import (
     DATA_ROOT,
     DISPOSITIONS,
@@ -137,6 +137,13 @@ def ensure_voter_accessible(voter):
     if g.phonebank:
         if voter.id == session["chosen_voter"]:
             return
+
+        # also check householding info for phonebanking
+        # (if the last voter we worked on is in the household, then it's ok)
+
+        for voter_set in householding.household_info_by_phones(voter).values():
+            if session["chosen_voter"] in [v.id for v in voter_set]:
+                return
 
     turf_id = session.get("last_turf")
     ensure_turf_accessible(turf_id)
@@ -535,7 +542,11 @@ def show_voter(id: ID):
 
     ensure_voter_accessible(voter)
 
-    return render_template("voter.html", voter=voter)
+    return render_template(
+        "voter.html",
+        voter=voter,
+        phone_household=householding.household_info_by_phones(voter),
+    )
 
 
 @app.route("/voter/<int:id>/act/")

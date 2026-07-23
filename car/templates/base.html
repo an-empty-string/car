@@ -52,6 +52,25 @@
 {% endwith %}
 {% endmacro %}
 
+{% macro short_demographics(voter) %}
+{% if voter.has_demographics() %}
+~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% if voter.party %},
+{{ voter.party.replace("Republican", "Rep").replace("Democrat", "Dem") }}
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro voter_in_household(voter) %}
+{{ voter_link(voter.id, True) }}
+{{ short_demographics(voter) }}
+
+{% with disp, note = voter.last_disposition_with_note() %}
+{% if disp %}
+<div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
 {% macro render_time_since(start) %}
 <span style="text-decoration: underline dotted;" title="{{ start }}">{{ time_taken(start, None) }} ago</span>
 {%- endmacro %}

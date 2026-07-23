@@ -25,7 +25,7 @@
     {% with voter = db.get_voter_by_id(id) %}
     {% if not voter.should_hide() %}
     <li>
-        {{ voter_link(id, True) }}{% if voter.has_demographics() %} ~{{ voter.age() }} y/o, {{ voter.gender }}, {{ voter.race }}{% endif %}
+        {{ voter_link(id, True) }}{{ short_demographics(voter) }}
         {% with disp, note = voter.last_disposition_with_note() %}
         {% if disp %}
         <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
