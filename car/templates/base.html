@@ -145,7 +145,12 @@
             {% if g.canvasser %}
             <a href="/settings/?return={{ request.url|urlencode }}">
                 settings</a>
-            (turf maps, zoom phone, etc)
+            (turf maps, zoom phone, etc) &middot;
+            {% if session.phone_paired %}
+            <a href="/pair_phone/unpair/?return={{ request.url|urlencode }}">unpair phone</a>
+            {% else %}
+            <a href="/pair_phone/?return={{ request.url|urlencode }}">pair a phone</a> to phonebank from your computer easily
+            {% endif %}
             {% endif %}
             <a target="_blank" class="credits-link" href="/credits/">🚗 car by Tris and friends</a>
         </footer>

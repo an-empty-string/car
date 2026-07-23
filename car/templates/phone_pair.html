@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}car phone{% endblock %}
+{% block content %}
+<h1>Scan QR code</h1>
+<p>Scan this QR code on your phone. Then, start working on a phonebank turf.</p>
+
+<img src="{{ code }}" />
+
+<style>
+img {
+    image-rendering: pixelated;
+    height: 40vh;
+}
+</style>
+<script>
+    setInterval(async function() {
+        const resp = await fetch(
+            "/pair_phone/{{ session.phone_code }}/status.json"
+        );
+        if(!resp.ok) return;
+
+        location.href = "/pair_phone/success/";
+    }, 500)
+</script>
+{% endblock %}

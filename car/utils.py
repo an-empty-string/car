@@ -1,4 +1,5 @@
 import datetime
+import subprocess
 
 
 def time_taken_sec(t_start, t_end):
@@ -57,6 +58,18 @@ def human_interval(sec):
 
 def time_taken(t_start, t_end):
     return human_interval(time_taken_sec(t_start, t_end))
+
+
+def qr_code(uri):
+    proc = subprocess.Popen(
+        "qrencode -t png -o- | base64 -w0",
+        shell=True,
+        text=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    out, _ = proc.communicate(uri)
+    return f"data:image/png;base64,{out}"
 
 
 class MemoryCache:

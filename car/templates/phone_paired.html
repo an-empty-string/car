@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>carphone</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/static/mycoolstylesheet.css">
+    </head>
+    <body>
+        <div id="x">Waiting for info from <em>car</em>...</div>
+
+        <script>
+            var lastVoter = null;
+            const el = document.getElementById("x");
+
+            setInterval(async function() {
+                const resp = await fetch(
+                    "/pair_phone/{{ code }}/status.json"
+                );
+                if(!resp.ok) return;
+
+                const data = await resp.json();
+                if(data.voter) {
+                    if(data.voter != lastVoter) {
+                        const voterHtml = await fetch("/pair_phone/{{ code }}/voter/");
+                        el.innerHTML = await voterHtml.text();
+                        lastVoter = data.voter;
+                    }
+                } else {
+                    el.innerHTML = data.data;
+                }
+            }, 500)
+        </script>
+    </body>
+</html>

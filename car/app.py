@@ -15,6 +15,7 @@ from flask import (
     abort,
     flash,
     g,
+    jsonify,
     make_response,
     redirect,
     render_template,
@@ -43,9 +44,11 @@ from .model import (
 
 PHONEBANK_MIN_DELAY = 60 * 15
 SETTINGS_KEYS = ["use_map", "autolink", "zoom_phone"]
+BASE_URL = "https://car.yourallyinmontgomery.org"
 
 app = Flask(__name__)
 cache = utils.MemoryCache()
+phones = {}
 
 os.chdir(DATA_ROOT)
 
@@ -95,6 +98,9 @@ def before_request():
         "login",
         "credits",
         "static",
+        "pair_phone",
+        "pair_phone_status",
+        "phone_voter_html",
     } and not request.path.startswith("/login/"):
         if "favicon" in request.url:
             abort(404)
@@ -234,10 +240,6 @@ def login(login_code=None):
 
 @app.route("/logout/")
 def logout():
-    session.pop("canvasser")
-    session.pop("turfs")
-    session.pop("admin")
-
     session.clear()
 
     flash("Logged out!")
@@ -551,6 +553,9 @@ def door_act(id: ID):
 @browser_cache
 def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
+    if g.phonebank and session.get("phone_paired"):
+        if not request.headers.get("HX-Preloaded"):
+            phones[session["phone_code"]]["voter"] = id
 
     ensure_voter_accessible(voter)
 
@@ -771,6 +776,56 @@ def phonebank_next_voter(turf_id):
         return redirect(url_for("login"))
 
     return redirect(url_for("index"))
+
+
+@app.route("/pair_phone/")
+def pair_phone_generate_code():
+    session["return_to"] = request.args.get("return", "/")
+    phone_code = session["phone_code"] = secrets.token_hex()
+    phones[phone_code] = {"zoom_phone": session["zoom_phone"]}
+    qr_code = utils.qr_code(f"{BASE_URL}/pair_phone/{phone_code}/")
+    return render_template("phone_pair.html", code=qr_code)
+
+
+@app.route("/pair_phone/success/")
+def pair_phone_success():
+    flash("Phone paired successfully!")
+    session["phone_paired"] = True
+    return redirect(session.pop("return_to"))
+
+
+@app.route("/pair_phone/<code>/")
+def pair_phone(code):
+    if code == "unpair":
+        session.pop("phone_paired")
+        phones[session.pop("phone_code")].update(
+            {
+                "data": "Phone unpaired.",
+                "voter": None,
+            }
+        )
+        return redirect(request.args.get("return", "/"))
+
+    session["zoom_phone"] = phones[code]["zoom_phone"]
+    phones[code].update({"seen": time.time(), "data": "Phone paired!", "voter": None})
+    return render_template("phone_paired.html", code=code)
+
+
+@app.route("/pair_phone/<code>/voter/")
+def phone_voter_html(code):
+    voter = db.get_voter_by_id(phones[code]["voter"])
+    return render_template("phone_voter.html", voter=voter)
+
+
+@app.route("/pair_phone/<code>/status.json")
+def pair_phone_status(code):
+    if code not in phones:
+        abort(404)
+
+    if "data" not in phones[code]:
+        abort(404)
+
+    return jsonify(**phones[code])
 
 
 @app.route("/activity_feed/")

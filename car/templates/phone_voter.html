@@ -1,0 +1,7 @@
+{% from "base.html" import phone_link, sms_link with context %}
+<h2 style="border: none; margin: 0;">{{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}</h2>
+
+{% if voter.bestphone %}{{ phone_link("best", voter.bestphone) }}{% endif %}
+{% if voter.cellphone and voter.cellphone != voter.bestphone %}{{ phone_link("cell", voter.cellphone) }}{% endif %}
+{% if voter.landlinephone and voter.landlinephone != voter.bestphone %}{{ phone_link("landline", voter.landlinephone) }}{% endif %}
+{% if voter.cellphone %}{{ sms_link(voter.cellphone) }}{% endif %}
