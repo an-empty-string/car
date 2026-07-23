@@ -277,6 +277,10 @@ def reformat_phone(k: str) -> str:
 
 def tel_uri(k: str, tel: str = "tel") -> str:
     k = "".join([i for i in k if i.isnumeric()])
+
+    if session.get("zoom_phone") and tel == "tel":
+        return f"zoomphonecall://+1{k:10}"
+
     return f"{tel}:+1{k[:10]}"
 
 
