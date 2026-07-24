@@ -43,7 +43,11 @@ from .model import (
 )
 
 PHONEBANK_MIN_DELAY = 60 * 15
-SETTINGS_KEYS = ["use_map", "autolink", "zoom_phone"]
+SETTINGS_KEYS = {
+    "use_map": 1,
+    "autolink": 1,
+    "zoom_phone": 0,
+}
 BASE_URL = "https://car.yourallyinmontgomery.org"
 
 app = Flask(__name__)
@@ -197,6 +201,9 @@ def login(login_code=None):
         for key in SETTINGS_KEYS:
             if key in settings_data:
                 session[key] = settings_data[key]
+
+    else:
+        session.update(SETTINGS_KEYS)
 
     session["admin"] = False
 
