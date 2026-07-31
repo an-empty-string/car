@@ -34,10 +34,10 @@ The `update_voter_turfs` script also reorders doors in turfs. If you are in a gr
 python -m venv .venv
 source .venv/bin/activate
 pip install .
-python3 app.py
+python3 -m car.app
 ```
 
 ## uv
 ```sh
-uv run app.py
+uv run -m car.app
 ```
