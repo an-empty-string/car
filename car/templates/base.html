@@ -112,7 +112,8 @@
 
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     </head>
-    <body hx-ext="preload">
+    {# phonebanking doesn't get preloading because it breaks phone sync #}
+    <body{% if not g.phonebank %} hx-ext="preload"{% endif %}>
         <header>
             {% if session.canvasser %}
             Hi, {{ session.canvasser }}! &middot;
