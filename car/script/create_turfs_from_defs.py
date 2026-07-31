@@ -2,7 +2,7 @@ import json
 
 import yaml
 
-from ..model import Turf
+from ..model import Group, Turf
 from .update_voter_turfs import assign_login_codes, database
 
 # load voter score data
@@ -38,6 +38,17 @@ for turf in database.turfs:
 
     turfs_by_external_id[turf.external_id] = turf
 
+# get existing groups
+groups_by_external_id = {}
+for group in database.groups:
+    groups_by_external_id[group.external_id] = group
+
+# test groups
+if "group1" not in turfs_by_external_id:
+    groups_by_external_id["group1"] = database.save_group(Group(external_id="group1", desc="cool group", created_by="system import"))
+if "group2" not in turfs_by_external_id:
+    groups_by_external_id["group2"] = database.save_group(Group(external_id="group2", desc="lame group", created_by="system import"))
+
 # process turfs
 for config in turf_configs:
     # get or create turf
@@ -46,7 +57,11 @@ for config in turf_configs:
             Turf(external_id=config["name"], created_by="system import")
         )
 
-    turf = turfs_by_external_id[config["name"]]
+    turf: Turf = turfs_by_external_id[config["name"]]
+    # assign to a group for testing
+    group: Group = groups_by_external_id["group1"] if config["name"] != "issue-3-phonebank" else groups_by_external_id["group2"]
+    group.turfs.append(turf.id)
+    turf.group_id = group.id
 
     # update props from config
     for prop, value in config["props"].items():
@@ -58,12 +73,14 @@ for config in turf_configs:
         if test_voter(voter, config["rule"]):
             print(voter)
             turf.voters.append(voter.id)
+            group.voters.append(voter.id)
 
     # handle geodata
     if "geo_data" in config:
         raise NotImplementedError("geo data not implemented yet!")
 
     database.save_turf(turf)
+    database.save_group(group)
 
 assign_login_codes()
 database.commit()
