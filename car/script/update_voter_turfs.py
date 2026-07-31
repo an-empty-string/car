@@ -8,7 +8,7 @@ import subprocess
 
 from ..model import ID, Database, Turf, has_geocode
 
-TURF_DATA_PATH = os.environ["TURF_DATA_PATH"]
+TURF_DATA_PATH = os.getenv("TURF_DATA_PATH", "")
 
 database = Database.get()
 
@@ -179,6 +179,7 @@ def assign_login_codes():
 
 
 if __name__ == "__main__":
+    assert TURF_DATA_PATH, "$TURF_DATA_PATH not set"
     sync_turf_props()
     set_voter_turfs()
     database.fixup_backrefs()

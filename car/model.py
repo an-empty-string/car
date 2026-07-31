@@ -46,11 +46,11 @@ def timestamp() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-type DatabaseType = Literal["turf", "door", "voter"]
+type DatabaseType = Literal["turf", "door", "voter", "group"]
 
 
 def is_valid_type(typ: str) -> TypeIs[DatabaseType]:
-    return typ in {"turf", "door", "voter"}
+    return typ in {"turf", "door", "voter", "group"}
 
 
 class BaseDatabase(BaseModel):
@@ -219,11 +219,22 @@ class Model(BaseModel):
             db.commit()
 
 
+class Group(Model):
+    """Represents a group of voters/turfs"""
+
+    TYPE: ClassVar[DatabaseType] = "group"
+    desc: str = ""
+    external_id: str = ""
+    voters: list[ID] = []
+    turfs: list[ID] = []
+
+
 class Turf(Model):
     TYPE: ClassVar[DatabaseType] = "turf"
 
     desc: str = ""
     external_id: str = ""
+    group_id: ID | None = None
     phone_key: str = ""
     login_code: str = ""
     doors: list[ID] = []
@@ -363,6 +374,8 @@ class Database(BaseDatabase):
     turfs: list[Turf] = []
     doors: list[Door] = []
     voters: list[Voter] = []
+    groups: list[Group] = []
+
 
     def get_by_type_and_id(self, typ: DatabaseType, id: ID) -> Model:
         return getattr(self, typ + "s")[id].model_copy(deep=True)
@@ -396,6 +409,16 @@ class Database(BaseDatabase):
         if commit:
             self.commit()
         return t
+
+    def get_group_by_id(self, id: ID) -> Group:
+        return self.groups[id].model_copy(deep=True)
+
+    def save_group(self, group: Group, *, commit: bool = False) -> Group:
+        g = self._save_model(group, self.groups)
+
+        if commit:
+            self.commit()
+        return g
 
     def get_disposition_for_type_and_id(
         self, typ: DatabaseType, id: ID, turf: Turf | None = None
@@ -435,9 +458,7 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[
-            T: Model, U: Model
-        ](
+        def _fixup_one_backref_set[T: Model, U: Model](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],
@@ -469,6 +490,7 @@ class Database(BaseDatabase):
                         maybe_children.remove(child_id)
 
         _fixup_one_backref_set(self.voters, "voters", self.doors, "door_id")
+        _fixup_one_backref_set(self.turfs, "turfs", self.groups, "group_id")
 
     def assert_constraints(self):
         if any(
