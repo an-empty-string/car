@@ -45,9 +45,13 @@ for group in database.groups:
 
 # test groups
 if "group1" not in groups_by_external_id:
-    groups_by_external_id["group1"] = database.save_group(Group(external_id="group1", desc="cool group", created_by="system import"))
+    groups_by_external_id["group1"] = database.save_group(
+        Group(external_id="group1", desc="cool group", created_by="system import")
+    )
 if "group2" not in groups_by_external_id:
-    groups_by_external_id["group2"] = database.save_group(Group(external_id="group2", desc="lame group", created_by="system import"))
+    groups_by_external_id["group2"] = database.save_group(
+        Group(external_id="group2", desc="lame group", created_by="system import")
+    )
 
 # process turfs
 for config in turf_configs:
@@ -59,7 +63,11 @@ for config in turf_configs:
 
     turf: Turf = turfs_by_external_id[config["name"]]
     # assign to a group for testing
-    group: Group = groups_by_external_id["group1"] if config["name"] != "issue-3-phonebank" else groups_by_external_id["group2"]
+    group: Group = (
+        groups_by_external_id["group1"]
+        if config["name"] != "issue-3-phonebank"
+        else groups_by_external_id["group2"]
+    )
     group.turfs.append(turf.id)
     turf.group_id = group.id
 

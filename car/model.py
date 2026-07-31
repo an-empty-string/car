@@ -116,18 +116,6 @@ class BaseDatabase(BaseModel):
         with open(cls.db_file()) as f:
             return cls.model_validate_json(f.read())
 
-    @functools.cache
-    def voter_ids_by_note_id(self):
-        return {v.id_for_notes(): v.id for v in self.voters}
-
-    def get_voter_by_note_id(self, note_id):
-        v = self.voter_ids_by_note_id()
-        if note_id not in v:
-            self.voter_ids_by_note_id.cache_clear()
-            v = self.voter_ids_by_note_id()
-
-        return self.get_voter_by_id(v[note_id])
-
     def __hash__(self):
         return hash(self.DATABASE_FILE_NAME)
 
@@ -376,7 +364,6 @@ class Database(BaseDatabase):
     voters: list[Voter] = []
     groups: list[Group] = []
 
-
     def get_by_type_and_id(self, typ: DatabaseType, id: ID) -> Model:
         return getattr(self, typ + "s")[id].model_copy(deep=True)
 
@@ -438,6 +425,18 @@ class Database(BaseDatabase):
             case "voter":
                 voter = self.get_voter_by_id(id)
                 return voter.last_disposition(after)
+
+    @functools.cache
+    def voter_ids_by_note_id(self):
+        return {v.id_for_notes(): v.id for v in self.voters}
+
+    def get_voter_by_note_id(self, note_id):
+        v = self.voter_ids_by_note_id()
+        if note_id not in v:
+            self.voter_ids_by_note_id.cache_clear()
+            v = self.voter_ids_by_note_id()
+
+        return self.get_voter_by_id(v[note_id])
 
     def _save_model[T: Model](self, m: T, collection: list[T]) -> T:
         if m.has_id():  # update existing

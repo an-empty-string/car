@@ -23,6 +23,7 @@ from flask import (
     session,
     url_for,
 )
+from typing_extensions import TypeIs
 
 # project
 from . import householding, utils
@@ -121,15 +122,15 @@ def after_request(resp):
     return resp
 
 
-def ensure_turf_accessible(turf_id):
+def ensure_turf_accessible(turf_id) -> TypeIs[int]:
     if "canvasser" not in session:
         abort(403)
 
     if session["admin"]:
-        return
+        return True
 
     if turf_id in session["turfs"]:
-        return
+        return True
 
     abort(403)
 
@@ -157,7 +158,7 @@ def ensure_voter_accessible(voter):
                 return
 
     turf_id = session.get("last_turf")
-    ensure_turf_accessible(turf_id)
+    assert ensure_turf_accessible(turf_id)
 
     if voter.id not in db.get_turf_by_id(turf_id).voters:
         abort(403)
@@ -168,7 +169,7 @@ def ensure_door_accessible(door):
         return
 
     turf_id = session.get("last_turf")
-    ensure_turf_accessible(turf_id)
+    assert ensure_turf_accessible(turf_id)
 
     if door.id not in db.get_turf_by_id(turf_id).doors:
         abort(403)
@@ -357,7 +358,7 @@ def settings():
 @app.route("/turf/<int:id>/")
 @browser_cache
 def show_turf(id: ID):
-    ensure_turf_accessible(id)
+    assert ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
 
@@ -418,7 +419,7 @@ def show_turf(id: ID):
 
 @app.route("/turf/<int:id>/start/")
 def start_turf(id):
-    ensure_turf_accessible(id)
+    assert ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
     turf.add_note(
@@ -436,7 +437,7 @@ def start_turf(id):
 
 @app.route("/turf/<int:id>/finish/")
 def finish_turf(id):
-    ensure_turf_accessible(id)
+    assert ensure_turf_accessible(id)
 
     turf = db.get_turf_by_id(id)
     turf.add_note(
@@ -659,7 +660,7 @@ def thing_title(model: Model) -> str:
 @browser_cache
 def note_obj(typ: str, id: ID):
     if typ == "turf":
-        ensure_turf_accessible(id)
+        assert ensure_turf_accessible(id)
     elif typ == "door":
         ensure_door_accessible(db.get_door_by_id(id))
         if request.method == "POST":
@@ -748,7 +749,7 @@ def edit_voter(id: ID):
 
 @app.route("/next/<int:turf_id>/")
 def phonebank_next_voter(turf_id):
-    ensure_turf_accessible(turf_id)
+    assert ensure_turf_accessible(turf_id)
     turf = db.get_turf_by_id(turf_id)
 
     if not turf.phone_key:
