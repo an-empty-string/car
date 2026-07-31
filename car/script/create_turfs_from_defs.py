@@ -44,9 +44,9 @@ for group in database.groups:
     groups_by_external_id[group.external_id] = group
 
 # test groups
-if "group1" not in turfs_by_external_id:
+if "group1" not in groups_by_external_id:
     groups_by_external_id["group1"] = database.save_group(Group(external_id="group1", desc="cool group", created_by="system import"))
-if "group2" not in turfs_by_external_id:
+if "group2" not in groups_by_external_id:
     groups_by_external_id["group2"] = database.save_group(Group(external_id="group2", desc="lame group", created_by="system import"))
 
 # process turfs
