@@ -52,28 +52,36 @@
 {% endif %}
 
 <h2>📋️ Contact</h2>
-{% if g.phonebank %}
-    {% if voter.bestphone %}{{ phone_link("best", voter.bestphone) }}{% endif %}
-    {% if voter.cellphone and voter.cellphone != voter.bestphone %}{{ phone_link("cell", voter.cellphone) }}{% endif %}
-    {% if voter.landlinephone and voter.landlinephone != voter.bestphone %}{{ phone_link("landline", voter.landlinephone) }}{% endif %}
 
-    {% if voter.cellphone %}{{ sms_link(voter.cellphone) }}{% endif %}
-{% endif %}
+<div class="desktop-row">
+    {% if g.phonebank and not session.phone_paired %}
+    <div class="desktop-column">
+        {% if voter.bestphone %}{{ phone_link("best", voter.bestphone) }}{% endif %}
+        {% if voter.cellphone and voter.cellphone != voter.bestphone %}{{ phone_link("cell", voter.cellphone) }}{% endif %}
+        {% if voter.landlinephone and voter.landlinephone != voter.bestphone %}{{ phone_link("landline", voter.landlinephone) }}{% endif %}
 
-{{ note_link("voter", voter.id, text="log conversation") }}
+        {% if voter.cellphone %}{{ sms_link(voter.cellphone) }}{% endif %}
+    </div>
+    {% endif %}
 
-<a href="{{ url_for('voter_act', id=voter.id, act="refused") }}"><button>refused conversation</button></a>
+    <div class="desktop-column">
+        {{ note_link("voter", voter.id, text="log conversation") }}
+        <a href="{{ url_for('voter_act', id=voter.id, act="refused") }}"><button>refused conversation</button></a>
+        {% if g.phonebank %}
 
+            <a href="{{ url_for('voter_act', id=voter.id, act="attempted") }}"><button>attempted/not reached</button></a>
+            <a href="{{ url_for('voter_act', id=voter.id, act="wrong-number") }}"><button>wrong number</button></a>
 
-{% if g.phonebank %}
-
-    <a href="{{ url_for('voter_act', id=voter.id, act="attempted") }}"><button>attempted/not reached</button></a>
-    <a href="{{ url_for('voter_act', id=voter.id, act="wrong-number") }}"><button>wrong number</button></a>
-
-    <a href="{{ url_for('phonebank_next_voter', turf_id=session.phonebank_turf) }}"><button>next voter</button></a>
-{% else %}
-    <a href="{{ url_for('voter_act', id=voter.id, act="wrong-address") }}"><button>voter doesn't live here</button></a>
-{% endif %}
+        {% else %}
+            <a href="{{ url_for('voter_act', id=voter.id, act="wrong-address") }}"><button>voter doesn't live here</button></a>
+        {% endif %}
+    </div>
+    {% if g.phonebank %}
+    <div class="desktop-column">
+        <a href="{{ url_for('phonebank_next_voter', turf_id=session.phonebank_turf) }}"><button>next voter</button></a>
+    </div>
+    {% endif %}
+</div>
 
 {% if session.admin %}
 <h2>🔧 Data admin</h2>

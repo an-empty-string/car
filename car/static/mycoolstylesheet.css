@@ -20,6 +20,7 @@ div.form-field > input[type="text"] {
 .important {
     color: var(--danger-color);
 }
+
 button {
     font-size: 150%;
     width: 100%;
@@ -181,5 +182,15 @@ header {
 @media(max-width: 800px) {
     .turf-code-small {
         display: none;
+    }
+}
+@media(min-width: 800px) {
+    .desktop-row {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+    }
+    .desktop-column {
+        padding: 0.5em;
     }
 }
