@@ -36,6 +36,16 @@ def int_or_none(x):
     return int(x)
 
 
+def autotype(x):
+    if not x:
+        return 0
+
+    if x.isnumeric():
+        return int(x)
+
+    return str(x)
+
+
 def race(x):
     q = x["CountyEthnic_Description"]
     return {
@@ -80,6 +90,11 @@ for line in lines:
             key: int_or_none(value)
             for key, value in line.items()
             if key.startswith("hs_")
+        },
+        "consumer": {
+            key: autotype(value)
+            for key, value in line.items()
+            if key.startswith("ConsumerData_")
         },
         "gender": line["Voters_Gender"],
         "party": line["hf_ideology_overall_party"],
