@@ -15,4 +15,11 @@
     --header-bg: #21242b;
     --highlight-bg: #b59f00;
     --credits-color: #9db1ff;
+    --btn-bg: #2e2d61;
+    --btn-text: #ffffff;
+    --btn-border: #1d1c3d;
+    --btn-hover-bg: #3b3a78;
+    --btn-active-bg: #343285;
+    --btn-disabled-bg: #444;
+    --btn-disabled-text: #888;
 }

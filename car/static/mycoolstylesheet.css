@@ -23,7 +23,21 @@ div.form-field > input[type="text"] {
 button {
     font-size: 150%;
     width: 100%;
-    margin-top:12px;
+    margin-top: 12px;
+    padding: 0.5em 1em;
+    background-color: var(--btn-bg);
+    color: var(--btn-text);
+    border: 1px solid var(--btn-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+button:hover { background-color: var(--btn-hover-bg); }
+button:active { background-color: var(--btn-active-bg); }
+button:disabled {
+    background-color: var(--btn-disabled-bg);
+    color: var(--btn-disabled-text);
+    cursor: not-allowed;
 }
 
 h1,h2,h3 {
