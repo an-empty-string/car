@@ -1,4 +1,6 @@
 import json
+from collections.abc import Callable, Collection
+from typing import Any, Protocol
 
 import yaml
 
@@ -6,6 +8,7 @@ from ..model import Group, Turf
 from .update_voter_turfs import assign_login_codes, database
 
 # load voter score data
+print("loading targeting data...")
 with open("targeting_data.json") as f:
     targeting_data = json.load(f)
 
@@ -26,69 +29,88 @@ def test_voter(voter, expr):
     return eval(expr, env)
 
 
-# load turfs config
-with open("turf_defs.yml") as f:
-    turf_configs = yaml.safe_load(f)
+class HasExternalId(Protocol):
+    external_id: str
+
+
+def get_by_external_id[
+    T: HasExternalId
+](items: Collection[T], defs: list[T], save: Callable[[T], T]) -> dict[str, T]:
+    """gets a dict of items (groups/turfs) by their external id,
+    updating the db if the `defs` dont already exist in `items`"""
+    items_by_external_id = {i.external_id: i for i in items if i.external_id}
+    for item in defs:
+        if item.external_id not in items_by_external_id:
+            items_by_external_id[item.external_id] = save(item)
+    return items_by_external_id
+
+
+def make_list_of_defs[
+    T: Any
+](constructor: type[T], configs: list[dict[str, Any]]) -> list[T]:
+    "constructs a list of the actual type based on the yaml defs"
+    return [
+        constructor(
+            external_id=config["name"],
+            created_by="system import",
+            **config.get("props", {}),
+        )
+        for config in configs
+    ]
+
+
+# load turfs/groups config
+print("loading defs...")
+with open("defs.yml") as f:
+    configs = yaml.safe_load(f)
+turf_configs = [c for c in configs if c["type"] == "turf"]
+group_configs = [c for c in configs if c["type"] == "group"]
+
 
 # get existing turfs
-turfs_by_external_id = {}
-for turf in database.turfs:
-    if not turf.external_id:
-        continue
-
-    turfs_by_external_id[turf.external_id] = turf
-
-# get existing groups
-groups_by_external_id = {}
-for group in database.groups:
-    groups_by_external_id[group.external_id] = group
-
-# test groups
-if "group1" not in groups_by_external_id:
-    groups_by_external_id["group1"] = database.save_group(
-        Group(external_id="group1", desc="cool group", created_by="system import")
-    )
-if "group2" not in groups_by_external_id:
-    groups_by_external_id["group2"] = database.save_group(
-        Group(external_id="group2", desc="lame group", created_by="system import")
-    )
+turfs_by_external_id = get_by_external_id(
+    database.turfs,
+    make_list_of_defs(Turf, turf_configs),
+    database.save_turf,
+)
+groups_by_external_id = get_by_external_id(
+    database.groups,
+    make_list_of_defs(Group, group_configs),
+    database.save_group,
+)
 
 # process turfs
+print("processing turfs...")
 for config in turf_configs:
-    # get or create turf
-    if config["name"] not in turfs_by_external_id:
-        turfs_by_external_id[config["name"]] = database.save_turf(
-            Turf(external_id=config["name"], created_by="system import")
-        )
-
-    turf: Turf = turfs_by_external_id[config["name"]]
-    # assign to a group for testing
-    group: Group = (
-        groups_by_external_id["group1"]
-        if config["name"] != "issue-3-phonebank"
-        else groups_by_external_id["group2"]
-    )
-    group.turfs.append(turf.id)
-    turf.group_id = group.id
-
-    # update props from config
-    for prop, value in config["props"].items():
-        setattr(turf, prop, value)
+    turf = turfs_by_external_id[config["name"]]
 
     # map voters
     turf.voters = []
     for voter in database.voters:
         if test_voter(voter, config["rule"]):
-            print(voter)
             turf.voters.append(voter.id)
-            group.voters.append(voter.id)
 
     # handle geodata
     if "geo_data" in config:
         raise NotImplementedError("geo data not implemented yet!")
 
     database.save_turf(turf)
-    database.save_group(group)
+
+# process groups
+print("processing groups...")
+for config in group_configs:
+    group = groups_by_external_id[config["name"]]
+
+    for turf_external_id in config["turfs"]:
+        turf = turfs_by_external_id[turf_external_id]
+        group.turfs.append(turf.id)
+        turf.group_id = group.id
+        database.save_turf(turf)
+        group.voters.extend(turf.voters)
+        database.save_group(group)
+
 
 assign_login_codes()
+database.fix_id_duplicates()
 database.commit()
+print("done!")
