@@ -1,0 +1,25 @@
+:root {
+    --bg-color: #16181d;
+    --text-color: #e5e7eb;
+    --heading-border: #555;
+    --heading-border-dashed: #444;
+    --footer-color: #999;
+    --stripe-bg: #202225;
+    --link-visited: #9db4ff;
+    --danger-color: #ff6b6b;
+    --success-color: #4ade80;
+    --muted-color: #9ca3af;
+    --in-progress-color: pink;
+    --in-progress-bg: #555;
+    --last-note-color: #ccc;
+    --header-bg: #21242b;
+    --highlight-bg: #b59f00;
+    --credits-color: #9db1ff;
+    --btn-bg: #2e2d61;
+    --btn-text: #ffffff;
+    --btn-border: #1d1c3d;
+    --btn-hover-bg: #3b3a78;
+    --btn-active-bg: #343285;
+    --btn-disabled-bg: #444;
+    --btn-disabled-text: #888;
+}

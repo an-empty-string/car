@@ -48,6 +48,7 @@ SETTINGS_KEYS = {
     "use_map": 1,
     "autolink": 1,
     "zoom_phone": 0,
+    "dark_mode": 0,
 }
 BASE_URL = "https://car.yourallyinmontgomery.org"
 
