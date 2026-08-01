@@ -13,3 +13,4 @@ __pycache__
 /*.egg-info
 /data/
 /turf_defs.yml
+/defs.yml

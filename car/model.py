@@ -457,7 +457,9 @@ class Database(BaseDatabase):
         return model_result.model_copy(deep=True)
 
     def fixup_backrefs(self):
-        def _fixup_one_backref_set[T: Model, U: Model](
+        def _fixup_one_backref_set[
+            T: Model, U: Model
+        ](
             children: list[T],
             child_id_list_attr: str,
             parents: list[U],
@@ -496,3 +498,14 @@ class Database(BaseDatabase):
             not is_valid_ordering(ms) for ms in (self.turfs, self.doors, self.voters)
         ):
             raise AssertionError("frick!! tihs is a bug")
+
+    def fix_id_duplicates(self):
+        id_lists = [
+            (self.turfs, ["voters", "doors"]),
+            (self.doors, ["voters"]),
+            (self.groups, ["voters", "turfs"]),
+        ]
+        for items, props in id_lists:
+            for prop in props:
+                for item in items:
+                    setattr(item, prop, sorted(set(getattr(item, prop))))
