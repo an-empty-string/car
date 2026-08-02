@@ -57,9 +57,9 @@ class HasExternalId(Protocol):
     external_id: str
 
 
-def get_by_external_id[T: HasExternalId](
-    items: Collection[T], defs: list[T], save: Callable[[T], T]
-) -> dict[str, T]:
+def get_by_external_id[
+    T: HasExternalId
+](items: Collection[T], defs: list[T], save: Callable[[T], T]) -> dict[str, T]:
     """gets a dict of items (groups/turfs) by their external id,
     updating the db if the `defs` dont already exist in `items`"""
     items_by_external_id = {i.external_id: i for i in items if i.external_id}
@@ -69,9 +69,9 @@ def get_by_external_id[T: HasExternalId](
     return items_by_external_id
 
 
-def make_list_of_defs[T: Any](
-    constructor: type[T], configs: list[dict[str, Any]]
-) -> list[T]:
+def make_list_of_defs[
+    T: Any
+](constructor: type[T], configs: list[dict[str, Any]]) -> list[T]:
     "constructs a list of the actual type based on the yaml defs"
     return [
         constructor(
@@ -96,47 +96,35 @@ def test_voter(voter, expr):
     return _test_voter(voter, expr)[0]
 
 
-# get existing turfs
-turfs_by_external_id = get_by_external_id(
-    database.turfs,
-    make_list_of_defs(Turf, turf_configs),
-    database.save_turf,
-)
-groups_by_external_id = get_by_external_id(
-    database.groups,
-    make_list_of_defs(Group, group_configs),
-    database.save_group,
-)
-
-
 def main():
     # load turfs config
     with open("defs.yml") as f:
         configs = yaml.safe_load(f)
-        turf_configs = [c for c in configs if c["type"] == "turf"]
-        group_configs = [c for c in configs if c["type"] == "group"]
+    turf_configs = [c for c in configs if c["type"] == "turf"]
+    group_configs = [c for c in configs if c["type"] == "group"]
+
+    # get existing turfs/groups
+    turfs_by_external_id = get_by_external_id(
+        database.turfs,
+        make_list_of_defs(Turf, turf_configs),
+        database.save_turf,
+    )
+    groups_by_external_id = get_by_external_id(
+        database.groups,
+        make_list_of_defs(Group, group_configs),
+        database.save_group,
+    )
 
     # process turfs
     print("processing turfs...")
     for config in turf_configs:
         turf = turfs_by_external_id[config["name"]]
-
-        # map voters
-        turf.voters = []
-        for voter in database.voters:
-            if test_voter(voter, config["rule"]):
-                turf.voters.append(voter.id)
-
-            # update props from config
-            for prop, value in config["props"].items():
-                setattr(turf, prop, value)
-
-            # map voters
-            turf.voters = []
-            for voter in database.voters:
-                if test_voter(voter, config["rule"]):
-                    print(voter)
-                    turf.voters.append(voter.id)
+        turf.voters = [
+            voter.id for voter in database.voters if test_voter(voter, config["rule"])
+        ]
+        # handle geodata (or don't)
+        if "geo_data" in config:
+            raise NotImplementedError("geo data not implemented yet!")
 
         database.save_turf(turf)
 
@@ -157,10 +145,6 @@ def main():
     database.fix_id_duplicates()
     database.commit()
     print("done!")
-
-    # handle geodata
-    if "geo_data" in config:
-        raise NotImplementedError("geo data not implemented yet!")
 
 
 if __name__ == "__main__":
