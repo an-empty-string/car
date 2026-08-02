@@ -7,7 +7,7 @@ import random
 import secrets
 import time
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 # 3p
 from flask import (
@@ -20,7 +20,7 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,
+    session,  # type: ignore # we ignore this so we can better type it later
     url_for,
 )
 from typing_extensions import TypeIs
@@ -44,7 +44,35 @@ from .model import (
 )
 
 PHONEBANK_MIN_DELAY = 60 * 15
-SETTINGS_KEYS = {
+
+
+class Session(TypedDict, total=False):
+    # settings
+    use_map: int
+    autolink: int
+    zoom_phone: int
+    dark_mode: int
+
+    # state
+    admin: bool
+    phonebank: bool
+    return_to: str
+    canvasser: str
+    phonebank_turf: ID
+    last_turf: ID
+    last_door: ID | None
+    last_commit: float
+    turfs: list[ID]
+    chosen_voter: ID
+    previous_voter: ID | None
+
+    phone_code: str
+    phone_paired: bool
+
+
+session: Session
+
+SETTINGS_KEYS: Session = {
     "use_map": 1,
     "autolink": 1,
     "zoom_phone": 0,
@@ -54,7 +82,16 @@ BASE_URL = "https://car.yourallyinmontgomery.org"
 
 app = Flask(__name__)
 cache = utils.MemoryCache()
-phones = {}
+
+
+class Phone(TypedDict, total=False):
+    zoom_phone: int
+    data: str
+    voter: ID | None
+    seen: float
+
+
+phones: dict[str, Phone] = {}
 
 os.chdir(DATA_ROOT)
 
@@ -128,39 +165,42 @@ def after_request(resp):
     return resp
 
 
-def ensure_turf_accessible(turf_id) -> TypeIs[int]:
+def ensure_turf_accessible(turf_id) -> TypeIs[ID]:
+    if not isinstance(turf_id, int):
+        abort(400)
+
     if "canvasser" not in session:
         abort(403)
 
-    if session["admin"]:
+    if session.get("admin"):
         return True
 
-    if turf_id in session["turfs"]:
+    if turf_id in session.get("turfs", []):
         return True
 
     abort(403)
 
 
 def restrict_admin():
-    if session["admin"]:
+    if session.get("admin"):
         return
 
     abort(403)
 
 
-def ensure_voter_accessible(voter):
-    if session["admin"]:
+def ensure_voter_accessible(voter: Voter):
+    if session.get("admin"):
         return
 
     if g.phonebank:
-        if voter.id == session["chosen_voter"]:
+        if voter.id == session.get("chosen_voter"):
             return
 
         # also check householding info for phonebanking
         # (if the last voter we worked on is in the household, then it's ok)
 
         for voter_set in householding.household_info_by_phones(voter).values():
-            if session["chosen_voter"] in [v.id for v in voter_set]:
+            if session.get("chosen_voter") in [v.id for v in voter_set]:
                 return
 
     # check for householding by door
@@ -174,8 +214,8 @@ def ensure_voter_accessible(voter):
         abort(403)
 
 
-def ensure_door_accessible(door):
-    if session["admin"]:
+def ensure_door_accessible(door: Door):
+    if session.get("admin"):
         return
 
     turf_id = session.get("last_turf")
@@ -186,7 +226,7 @@ def ensure_door_accessible(door):
 
 
 def to_last_turf():
-    return redirect(url_for("show_turf", id=session["last_turf"]))
+    return redirect(url_for("show_turf", id=session.get("last_turf")))
 
 
 @app.route("/login/", methods=["GET", "POST"])
@@ -253,14 +293,14 @@ def login(login_code=None):
             flash("Turf already on list.")
 
     if "canvasser" not in session:
-        session["canvasser"] = request.form.get("canvasser")
+        session["canvasser"] = request.form["canvasser"]
 
     return redirect(session.pop("return_to", "/"))
 
 
 @app.route("/logout/")
 def logout():
-    session.clear()
+    cast(dict, session).clear()
 
     flash("Logged out!")
     return redirect(url_for("login"))
@@ -312,17 +352,17 @@ def is_phone(k: str):
 
 @app.route("/")
 def index():
-    if not session["admin"] and len(session["turfs"]) == 1:
-        return redirect(url_for("show_turf", id=session["turfs"][0]))
+    if not session.get("admin") and len(session.get("turfs", [])) == 1:
+        return redirect(url_for("show_turf", id=session.get("turfs", [])[0]))
 
-    if session["admin"]:
+    if session.get("admin"):
         my_geoturfs = geoturfs
     else:
         my_geoturfs = geoturfs.copy()
         my_geoturfs["features"] = [
             x
             for x in my_geoturfs["features"]
-            if x["properties"]["car_id"] in session["turfs"]
+            if x["properties"]["car_id"] in session.get("turfs", [])
         ]
 
     return render_template(
@@ -470,8 +510,9 @@ def finish_turf(id):
 def show_door(id: ID):
     door = db.get_door_by_id(id)
     ensure_door_accessible(door)
-
-    turf = db.get_turf_by_id(session.get("last_turf"))
+    last_turf = session.get("last_turf")
+    assert ensure_turf_accessible(last_turf)
+    turf = db.get_turf_by_id(last_turf)
     voters = [db.get_voter_by_id(voter_id) for voter_id in door.voters]
 
     # filter out "New Voter"
@@ -575,7 +616,8 @@ def show_voter(id: ID):
     voter = db.get_voter_by_id(id)
     if g.phonebank and session.get("phone_paired"):
         if not request.headers.get("HX-Preloaded"):
-            phones[session["phone_code"]]["voter"] = id
+            # TODO do we wanna add more validation around this?
+            phones[session.get("phone_code", "")]["voter"] = id
 
     ensure_voter_accessible(voter)
 
@@ -792,7 +834,7 @@ def phonebank_next_voter(turf_id):
         return redirect(url_for("show_voter", id=voter_id, keep_previous=1))
 
     flash("No voters to contact in this phonebank.")
-    if not session["admin"] and len(session["turfs"]) == 1:
+    if not session.get("admin") and len(session.get("turfs", [])) == 1:
         session["turfs"] = []
         return redirect(url_for("login"))
 
@@ -812,7 +854,7 @@ def phonebank_previous_voter():
 def pair_phone_generate_code():
     session["return_to"] = request.args.get("return", "/")
     phone_code = session["phone_code"] = secrets.token_hex()
-    phones[phone_code] = {"zoom_phone": session["zoom_phone"]}
+    phones[phone_code] = {"zoom_phone": session.get("zoom_phone", 0)}
     qr_code = utils.qr_code(f"{BASE_URL}/pair_phone/{phone_code}/")
     return render_template("phone_pair.html", code=qr_code)
 
@@ -836,14 +878,16 @@ def pair_phone(code):
         )
         return redirect(request.args.get("return", "/"))
 
-    session["zoom_phone"] = phones[code]["zoom_phone"]
+    session["zoom_phone"] = phones[code].get("zoom_phone", 0)
     phones[code].update({"seen": time.time(), "data": "Phone paired!", "voter": None})
     return render_template("phone_paired.html", code=code)
 
 
 @app.route("/pair_phone/<code>/voter/")
 def phone_voter_html(code):
-    voter = db.get_voter_by_id(phones[code]["voter"])
+    if (voter_id := phones[code].get("voter")) is None:
+        abort(404)
+    voter = db.get_voter_by_id(voter_id)
     return render_template("phone_voter.html", voter=voter)
 
 
