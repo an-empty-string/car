@@ -8,7 +8,7 @@ import subprocess
 
 from ..model import ID, Database, Turf, has_geocode
 
-TURF_DATA_PATH = os.getenv("TURF_DATA_PATH")
+TURF_DATA_PATH = os.getenv("TURF_DATA_PATH", "")
 TURF_GROUP_ID = os.getenv("TURF_GROUP")
 
 database = Database.get()
@@ -32,6 +32,7 @@ def sync_turf_props():
     cur.close()
 
     turf_group = get_turf_group()
+    assert turf_group
     active_turf_ids = {
         turf.id for turf in database.turfs if turf.group_id == turf_group.id
     }
