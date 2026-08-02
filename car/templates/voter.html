@@ -79,6 +79,9 @@
     {% if g.phonebank %}
     <div class="desktop-column">
         <a href="{{ url_for('phonebank_next_voter', turf_id=session.phonebank_turf) }}"><button>next voter</button></a>
+        {% if session.previous_voter is not none and session.previous_voter != voter.id %}
+        <a href="{{ url_for('phonebank_previous_voter') }}"><button>previous voter</button></a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
