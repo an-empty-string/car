@@ -97,6 +97,11 @@ def before_request():
     if session.get("phonebank"):
         g.phonebank = True
 
+    if request.endpoint in {"show_turf", "show_voter"} and not request.args.get(
+        "keep_previous"
+    ):
+        session["previous_voter"] = None
+
     c = session.get("canvasser")
     if c:
         g.canvasser = c
@@ -781,9 +786,10 @@ def phonebank_next_voter(turf_id):
         if not is_phone(voter.bestphone):
             continue
 
+        session["previous_voter"] = session.get("chosen_voter")
         session["chosen_voter"] = voter_id
         cache.set(f"last_seen_{voter_id}", time.time())
-        return redirect(url_for("show_voter", id=voter_id))
+        return redirect(url_for("show_voter", id=voter_id, keep_previous=1))
 
     flash("No voters to contact in this phonebank.")
     if not session["admin"] and len(session["turfs"]) == 1:
@@ -791,6 +797,15 @@ def phonebank_next_voter(turf_id):
         return redirect(url_for("login"))
 
     return redirect(url_for("index"))
+
+
+@app.route("/previous/")
+def phonebank_previous_voter():
+    if not (previous_voter := session.get("previous_voter")):
+        abort(404)
+    # pretend that the current voter was the previously "chosen voter" so back behavior works as expected
+    session["chosen_voter"] = previous_voter
+    return redirect(url_for("show_voter", id=previous_voter))
 
 
 @app.route("/pair_phone/")
