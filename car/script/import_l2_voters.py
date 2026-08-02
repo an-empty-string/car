@@ -72,6 +72,10 @@ for line in lines:
     )
     city = line["Residence_Addresses_City"]
 
+    if unit:
+        addr = addr.replace(unit, "")
+        addr = addr.strip()
+
     door_key = (addr, unit, city)
     if door_key not in doors:
         doors[door_key] = database.save_door(

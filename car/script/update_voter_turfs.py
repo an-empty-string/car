@@ -8,9 +8,16 @@ import subprocess
 
 from ..model import ID, Database, Turf, has_geocode
 
-TURF_DATA_PATH = os.getenv("TURF_DATA_PATH", "")
+TURF_DATA_PATH = os.getenv("TURF_DATA_PATH")
+TURF_GROUP_ID = os.getenv("TURF_GROUP")
 
 database = Database.get()
+
+
+def get_turf_group():
+    for group in database.groups:
+        if group.external_id == TURF_GROUP_ID:
+            return group
 
 
 def sync_turf_props():
@@ -24,7 +31,10 @@ def sync_turf_props():
     turf_meta = cur.fetchall()
     cur.close()
 
-    active_turf_ids = {turf.id for turf in database.turfs}
+    turf_group = get_turf_group()
+    active_turf_ids = {
+        turf.id for turf in database.turfs if turf.group_id == turf_group.id
+    }
 
     for rowid, car_id, name in turf_meta:
         if (
@@ -32,10 +42,19 @@ def sync_turf_props():
             or car_id not in active_turf_ids
             or os.getenv("RECREATE_TURFS")
         ):
-            turf = database.save_turf(Turf(desc=name, created_by="GIS turf import"))
+            turf = database.save_turf(
+                Turf(
+                    desc=name,
+                    created_by="GIS turf import",
+                    group_id=turf_group.id,
+                )
+            )
 
             cur = conn.cursor()
-            cur.execute("UPDATE turfs SET car_id=? WHERE rowid=?", (turf.id, rowid))
+            cur.execute(
+                "UPDATE turfs SET car_id=? WHERE rowid=?",
+                (turf.id, rowid),
+            )
             cur.close()
 
             print(f"imported turf {name}")
@@ -60,9 +79,9 @@ def set_voter_turfs():
             "qgis_process",
             "run",
             "native:joinattributesbylocation",
-            "--INPUT=./geocoded_doors.geojson",
+            f"--INPUT=./geocoded_doors-{TURF_GROUP_ID}.geojson",
             "--PREDICATE=5",  # contained within
-            "--JOIN=spatialite://dbname='/home/tris/maps/hd25/turfs_data.sqlite' table='turfs'(geometry) sql=",
+            f"--JOIN=spatialite://dbname='{TURF_DATA_PATH}' table='turfs'(geometry) sql=",
             "--METHOD=1",
             "--DISCARD_NONMATCHING=false",
             "--PREFIX=",
@@ -153,8 +172,6 @@ def reorder_doors(turf: Turf):
             total_score += score_door(n, cur)
 
         routes.append((total_score, start_id, result_ids))
-
-    print(routes)
 
     routes.sort()
     turf.doors = routes[0][2]

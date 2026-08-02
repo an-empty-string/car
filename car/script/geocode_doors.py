@@ -15,6 +15,9 @@ database = Database.get()
 todos = []
 todones = {}
 
+with open("already_geocoded.txt") as f:
+    already_geocoded = set(int(x.strip()) for x in f)
+
 if os.path.exists("geocode-todones.csv"):
     with open("geocode-todones.csv") as f:
         lines = csv.DictReader(f)
@@ -24,15 +27,17 @@ if os.path.exists("geocode-todones.csv"):
         }
 
 for door in database.doors:
-    if has_geocode(door):
+    if has_geocode(door) and door.id in already_geocoded:
         continue
 
     if todone_result := todones.get((door.address, door.city)):
+        print("Updated geocoding result from cached for", door.address, door.city)
         door.lat, door.lon = todone_result
 
     else:
-        result = geocoder.geocode(door.address, door.city)
+        result = geocoder.geocode(door.address, door.city, unit=door.unit)
         if result is not None:
+            print("Updated geocoding result for", door.address, door.city)
             door.lat, door.lon = result
 
         else:
@@ -48,3 +53,7 @@ database.commit()
 with open("geocode-todos.csv", "w") as f:
     csv.DictWriter(f, ["address", "city", "state"]).writerows(todos)
     print("Wrote geocode-todos.csv")
+
+with open("already_geocoded.txt", "w") as f:
+    f.write("\n".join(str(x) for x in already_geocoded))
+    print("Wrote already_geocoded.txt")

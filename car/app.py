@@ -158,6 +158,10 @@ def ensure_voter_accessible(voter):
             if session["chosen_voter"] in [v.id for v in voter_set]:
                 return
 
+    # check for householding by door
+    if voter.door_id == session.get("last_door"):
+        return
+
     turf_id = session.get("last_turf")
     assert ensure_turf_accessible(turf_id)
 
@@ -200,9 +204,11 @@ def login(login_code=None):
     settings_data = request.cookies.get("settings")
     if settings_data:
         settings_data = json.loads(settings_data)
-        for key in SETTINGS_KEYS:
+        for key, default in SETTINGS_KEYS.items():
             if key in settings_data:
                 session[key] = settings_data[key]
+            else:
+                session[key] = default
 
     else:
         session.update(SETTINGS_KEYS)
@@ -458,23 +464,23 @@ def finish_turf(id):
 @browser_cache
 def show_door(id: ID):
     door = db.get_door_by_id(id)
-
     ensure_door_accessible(door)
 
-    turf_doors = db.get_turf_by_id(session["last_turf"]).doors
-    idx = turf_doors.index(id)
-    prev_door_id = next_door_id = None
+    turf = db.get_turf_by_id(session.get("last_turf"))
+    voters = [db.get_voter_by_id(voter_id) for voter_id in door.voters]
 
-    if idx > 0:
-        prev_door_id = turf_doors[idx - 1]
-    if idx + 1 < len(turf_doors):
-        next_door_id = turf_doors[idx + 1]
+    # filter out "New Voter"
+    voters = [v for v in voters if not v.should_hide()]
+
+    # split out voters in our turf vs. just in household
+    turf_voters = [v for v in voters if v.id in turf.voters]
+    household_voters = [v for v in voters if v.id not in turf.voters]
 
     return render_template(
         "door.html",
         door=door,
-        prev_door_id=prev_door_id,
-        next_door_id=next_door_id,
+        turf_voters=turf_voters,
+        household_voters=household_voters,
     )
 
 

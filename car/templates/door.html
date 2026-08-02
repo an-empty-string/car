@@ -19,24 +19,36 @@
 {% endif %}
 {% endwith %}
 
-<h2>👨 Voters</h2>
-<ul class="secretly-a-table" hx-boost="true">
-    {% for id in door.voters %}
-    {% with voter = db.get_voter_by_id(id) %}
-    {% if not voter.should_hide() %}
-    <li>
-        {{ voter_link(id, True) }}{{ short_demographics(voter) }}
-        {% with disp, note = voter.last_disposition_with_note() %}
-        {% if disp %}
-        <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
-        {% endif %}
-        {% endwith %}
-    </li>
+{% macro render_voter(voter) %}
+<li>
+    {{ voter_link(voter.id, True) }}<br />
+    <small>{{ short_demographics(voter) }}</small>
+    {% with disp, note = voter.last_disposition_with_note() %}
+    {% if disp %}
+    <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
     {% endif %}
     {% endwith %}
+</li>
+{% endmacro %}
+
+<h2>👨 Voters in turf</h2>
+<ul class="secretly-a-table" hx-boost="true">
+    {% for voter in turf_voters %}
+    {{ render_voter(voter) }}
     {% endfor %}
 </ul>
+
+{% if household_voters %}
+<h2>🏡 Other voters</h2>
+<ul class="secretly-a-table" hx-boost="true">
+    {% for voter in household_voters %}
+    {{ render_voter(voter) }}
+    {% endfor %}
+</ul>
+{% endif %}
+
 <a href="{{ url_for('new_door_contact', id=door.id) }}"><button>add voter</button></a>
+
 <h2>🗒️ Notes</h2>
 {{ render_notes(door) }}
 
