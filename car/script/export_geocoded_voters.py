@@ -9,7 +9,7 @@ database = Database.get()
 include_voters = set()
 
 group_id = os.getenv("TURF_GROUP")
-for group in database.group:
+for group in database.groups:
     if group.external_id == group_id:
         include_voters.update(group.voters)
 
