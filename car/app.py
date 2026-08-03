@@ -407,6 +407,24 @@ def settings():
     return render_template("settings.html")
 
 
+@app.route("/search/", methods=["GET", "POST"])
+def search():
+    query = request.form.get("query")
+    if request.method == "GET" or not query:
+        return render_template("search.html", query="", results=None)
+
+    parts = query.strip().lower().split()
+
+    def matches_voter(v: Voter) -> bool:
+        return any(
+            part in "".join(map(str, v.model_dump().values())).lower() for part in parts
+        )
+
+    results = list(itertools.islice(filter(matches_voter, db.voters), 50))
+
+    return render_template("search.html", query=query, results=results)
+
+
 @app.route("/turf/<int:id>/")
 @browser_cache
 def show_turf(id: ID):
