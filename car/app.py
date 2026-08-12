@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any, TypedDict, cast
 
 # 3p
-from flask import (
+from flask import (  # type: ignore # we ignore this so we can better type it later
     Flask,
     abort,
     flash,
@@ -20,7 +20,7 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,  # type: ignore # we ignore this so we can better type it later
+    session,
     url_for,
 )
 from typing_extensions import TypeIs
@@ -68,6 +68,8 @@ class Session(TypedDict, total=False):
 
     phone_code: str
     phone_paired: bool
+
+    voters_searched: list[ID]
 
 
 session: Session
@@ -202,6 +204,9 @@ def ensure_voter_accessible(voter: Voter):
         for voter_set in householding.household_info_by_phones(voter).values():
             if session.get("chosen_voter") in [v.id for v in voter_set]:
                 return
+
+    if voter.id in session.get("voters_searched", []):
+        return
 
     # check for householding by door
     if voter.door_id == session.get("last_door"):
@@ -413,14 +418,19 @@ def search():
     if request.method == "GET" or not query:
         return render_template("search.html", query="", results=None)
 
+    session.pop("last_turf", None)
+    session.pop("phonebank", None)
+
     parts = query.strip().lower().split()
 
     def matches_voter(v: Voter) -> bool:
-        return any(
-            part in "".join(map(str, v.model_dump().values())).lower() for part in parts
+        return all(
+            part in " ".join(map(str, [v.firstname, v.lastname])).lower()
+            for part in parts
         )
 
-    results = list(itertools.islice(filter(matches_voter, db.voters), 50))
+    results = list(itertools.islice(filter(matches_voter, db.voters), 20))
+    session["voters_searched"] = [v.id for v in results]
 
     return render_template("search.html", query=query, results=results)
 

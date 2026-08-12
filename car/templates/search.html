@@ -16,28 +16,28 @@
         </button>
     </div>
 </form>
+
+{% macro render_voter(voter) %}
+<li>
+    {{ voter_link(voter.id) }}<br />
+    <small>{{ short_demographics(voter) }}</small>
+    {% with disp, note = voter.last_disposition_with_note() %}
+    {% if disp %}
+    <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
+    {% endif %}
+    {% endwith %}
+</li>
+{% endmacro %}
+
 {% if results is not none %}
 <div>
-    <h1 class="comfy">Results:</h1>
-    <table class="results-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Demographics</th>
-                <th>Party</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for voter in results %}
-            <tr>
-                <td><a href="{{ url_for('show_voter', id=voter.id_) }}">{{ voter.firstname }} {{ voter.middlename }} {{ voter.lastname }}</a></td>
-                <td>{{ voter.age() }} {{ voter.gender}}</td>
-                <td>{{ voter.party }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if results | length == 50 %}
+    <h1 class="comfy">Results</h1>
+    <ul class="secretly-a-table">
+        {% for voter in results %}
+        {{ render_voter(voter) }}
+        {% endfor %}
+    </ul>
+    {% if results | length == 20 %}
     <div>For better results, refine your query!</div>
     {% endif %}
 </div>

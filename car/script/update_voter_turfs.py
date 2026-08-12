@@ -33,6 +33,7 @@ def sync_turf_props():
 
     turf_group = get_turf_group()
     assert turf_group
+
     active_turf_ids = {
         turf.id for turf in database.turfs if turf.group_id == turf_group.id
     }
@@ -92,6 +93,9 @@ def set_voter_turfs():
         ]
     )
 
+    turf_group = get_turf_group()
+    assert turf_group
+
     with open("geocoded_doors_turfs_tmp.csv") as f:
         turfed_doors = list(csv.DictReader(f))
 
@@ -118,6 +122,9 @@ def set_voter_turfs():
 
         # move every voter on this door to their new turf
         for voter_id in car_door.voters:
+            if voter_id not in turf_group.voters:
+                continue
+
             print(f"add voter {voter_id} to turf {new_turf_id}")
             new_turf.voters.append(voter_id)
 
