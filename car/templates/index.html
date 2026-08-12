@@ -23,7 +23,7 @@
   {% endfor %}
   {% endfor %}
   {% for group in db.groups if group.turfs | length > 1 %}
-  <h3>{{ group.external_id }}</h3>
+  <h3>{{ group.desc }}</h3>
   {% for turf_id in group.turfs if (session.admin or turf_id in session.turfs) and db.get_turf_by_id(turf_id).visible %}
   {% with turf = db.get_turf_by_id(turf_id) %}
   <li>

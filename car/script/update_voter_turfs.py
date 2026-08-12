@@ -69,6 +69,8 @@ def sync_turf_props():
 
             database.save_turf(turf)
 
+    database.commit()
+
     conn.commit()
     conn.close()
 
@@ -120,6 +122,7 @@ def set_voter_turfs():
             new_turf.voters.append(voter_id)
 
     for turf in turfs.values():
+        print("save turf", turf.desc, f"{len(turf.voters)=} {len(turf.doors)=}")
         database.save_turf(turf)
 
 
