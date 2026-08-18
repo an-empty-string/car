@@ -1,0 +1,191 @@
+{% from "base.html" import short_demographics %}
+<html>
+    <head>
+        <title>{{ turf.desc }} Print</title>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+                    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+                    crossorigin=""></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+                               integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+                               crossorigin=""/>
+
+        <style>
+        table {
+            margin-bottom: 0.4em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table td {
+            border: 1px solid black;
+            margin: 0;
+            padding: 0.2em;
+            white-space: nowrap;
+        }
+
+        table td.nlb {
+            border-left: none;
+        }
+
+        table td.nrb {
+            border-right: none;
+        }
+
+        table td.nib {
+            border-left: none;
+            border-right: none;
+        }
+
+        table td.ar {
+            text-align: right;
+        }
+
+        table td.new-set {
+            font-size: 1.1em;
+            font-weight: 900;
+            padding-top: 0.5em;
+            padding-bottom: 0.5em;
+
+        }
+
+        table tr.has-note td.voter {
+            border-bottom: none;
+        }
+
+        table tr.is-note td {
+            border-top: none;
+        }
+
+        .voter-id {
+            font-family: "Courier New", "DejaVu Sans Mono", monospace;
+            font-weight: 0;
+            letter-spacing: -0.1em;
+            color: gray;
+        }
+
+        thead {display: table-header-group;}
+        @media print{
+            @page {size: landscape}
+            td {
+                font-size: 80%;
+            }
+            .page-break { break-after: page; }
+        }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <h1>{{ turf.login_code[:5] }} {{ turf.login_code[5:] }} - {{ turf.desc }}</h1>
+
+        {% if session.use_map|default(True) %}
+        <div id="map" style="height: 65vh;"></div>
+        <script>
+            var geodoors = {{ geodoors | tojson }};
+            var map = L.map("map").setView([33.53, -86.81], 11);;
+
+            L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+            }).addTo(map);
+
+            var layer = L.geoJSON(geodoors, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, {fillOpacity: 1, color:"black", radius: 10});
+                }
+            });
+
+            layer.addTo(map);
+            var bounds = layer.getBounds();
+            map.fitBounds(bounds);
+        </script>
+        <div class="page-break"></div>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="2"></td>
+                    <td colspan="4">
+                        +Strong ~Weak
+                    </td>
+                    <td>Not Home / Refused / Scale</td>
+                </tr>
+            </thead>
+        {% for order_key, doors in pretty_ordered_doors %}
+
+        <tr>
+            <td class="new-set" colspan="7">
+                {% if order_key[2] != "" %}
+                {{ order_key[2] }} {{ order_key[0] }}
+                {% else %}
+                {{ order_key[0] }} {{ order_key[1] }} side
+                {% endif %}
+            </td>
+        </tr>
+
+        {% for door in doors %}
+            {% for voter_id in door.voters %}
+            {% with voter = db.get_voter_by_id(voter_id) %}
+            {% with disp, note = voter.last_disposition_with_note() %}
+            {% if not voter.should_hide() %}
+                <tr{% if note %} class="has-note"{% endif %}>
+                    <td>
+                        {% if loop.first %}
+                            {% if order_key[2] == "" %}
+                            {{ door.address.split()[0] }}
+                            {% else %}
+                            {{ door.unit }}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="voter">
+                        <span class="voter-id">
+                            {{ hex(voter.id)[2:].zfill(4) }}
+                        </span>
+
+                        {% if disp == "refused" %}<strike>{% endif %}
+                        <strong>{{ voter.lastname }}, {{ voter.firstname }}
+                            {{ voter.middlename[0] if voter.middlename else "" }}
+                        </strong>
+                        {% if disp == "refused" %}</strike>{% endif %}
+                    </td>
+                    {% if voter.has_demographics() %}
+                    <td class="nrb">{{ voter.age() }}</td>
+                    <td class="nib">{{ voter.gender }}</td>
+                    <td class="nib">{{ voter.race }}</td>
+                    <td class="nlb ar">
+                        {% if voter.party %}
+                        {{ voter.party
+                                .replace("Republican", "Rep")
+                                .replace("Democrat", "Dem")
+                                .replace("Independent", "Ind")
+                                .replace("Strong ", "+")
+                                .replace("Weak ", "~")
+                        }}
+                        {% endif %}
+                    </td>
+                    {% else %}
+                    <td colspan="4">N/A</td>
+                    {% endif %}
+                    <td style="width: 100%" colspan="100%">
+                        NH RF
+                        1 2 3 4 5
+                    </td>
+                </tr>
+                {% if note %}
+                <tr class="is-note">
+                    <td></td>
+                    <td colspan="100%">
+                        {{ note.author }} @ {{ note.ts }}:
+                        {{ note.disposition }} / {{ note.note }}
+                    </td>
+                </tr>
+                {% endif %}
+            {% endif %}
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+        {% endfor %}
+        {% endfor %}
+        </table>
+    </body>
+</html>

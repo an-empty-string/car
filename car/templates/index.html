@@ -1,12 +1,10 @@
 {% extends "base.html" %} {% block title %}Turfs{% endblock %} {% block content %}
-<h1>Turfs</h1>
-<ul class="secretly-a-table">
-  {% for group in db.groups if group.turfs | length <= 1 %}
-  {% for turf_id in group.turfs if (session.admin or turf_id in session.turfs) and db.get_turf_by_id(turf_id).visible %}
+{% macro turf_row(turf_id) %}
   {% with turf = db.get_turf_by_id(turf_id) %}
   <li>
       {% if session.admin %}
       <span class="turf-code turf-code-small">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
+      <a style="vertical-align: middle; font-size: 80%;" href="{{ url_for('show_turf', id=turf.id, print="1") }}" target="_blank">(print)</a>
       {% endif %}
 
       {% with disp = db.get_disposition_for_type_and_id("turf", turf.id) %}
@@ -20,27 +18,21 @@
       {% endif %}
   </li>
   {% endwith %}
+{% endmacro %}
+
+<h1>Turfs</h1>
+<ul class="secretly-a-table">
+  {% for group in db.groups if group.turfs | length <= 1 %}
+  {% for turf_id in group.turfs if (session.admin or turf_id in session.turfs) and db.get_turf_by_id(turf_id).visible %}
+  {{ turf_row(turf_id) }}
   {% endfor %}
   {% endfor %}
+
   {% for group in db.groups if group.turfs | length > 1 %}
   <h3>{{ group.desc }}</h3>
   {% for turf_id in group.turfs if (session.admin or turf_id in session.turfs) and db.get_turf_by_id(turf_id).visible %}
   {% with turf = db.get_turf_by_id(turf_id) %}
-  <li>
-    {% if session.admin %}
-    <span class="turf-code turf-code-small">{{ turf.login_code[:5] }} {{ turf.login_code[5:] }}</span>
-    {% endif %}
-
-    {% with disp = db.get_disposition_for_type_and_id("turf", turf.id) %}
-    <a href="{{ url_for('show_turf', id=turf.id) }}" data-disposition="{{ disp }}">{{ turf.desc }}{% if disp %} <span class="disposition">({{ dispositions[disp] }})</span>{% endif %}</a>
-    {% endwith %}
-
-    {% if turf.phone_key %}
-    (phonebank, {{ turf.voters | length }} voters)
-    {% else %}
-    ({{ turf.doors | length }} doors, {{ turf.voters | length }} voters)
-    {% endif %}
-  </li>
+  {{ turf_row(turf_id) }}
   {% endwith %}
   {% endfor %}
   {% endfor %}

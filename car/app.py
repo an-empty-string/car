@@ -326,6 +326,7 @@ def inject_funcs() -> dict[str, Callable[..., Any]]:
         "reformat_phone": reformat_phone,
         "tel_uri": tel_uri,
         "time_taken": utils.time_taken,
+        "hex": hex,
     }
 
 
@@ -482,8 +483,10 @@ def show_turf(id: ID):
         key=lambda d: d.print_order_key(),
     )
 
+    print_mode = "print" in request.args
+
     return render_template(
-        "turf.html",
+        "turf_print.html" if print_mode else "turf.html",
         turf=turf,
         pretty_ordered_doors=pretty_ordered_doors,
         geodoors={
