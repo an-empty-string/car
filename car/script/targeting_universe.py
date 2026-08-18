@@ -163,14 +163,14 @@ class Voter:
         ]
 
         elections = [(x, y) for (x, y) in elections if x is not None]
-        elections.sort(key=lambda k: k[0].date, reverse=True)  # type: ignore
+        elections.sort(key=lambda k: k[0].date, reverse=True)
         return elections
 
     @property
     @functools.cache
     def last_voted(self):
         if self.elections:
-            return self.elections[0][0].date  # type: ignore
+            return self.elections[0][0].date
 
         return None
 
@@ -185,7 +185,7 @@ class Voter:
 
             code = code.strip()
             if code in r and r[code] is None:
-                r[code] = elec.date  # type: ignore
+                r[code] = elec.date
 
         return r
 

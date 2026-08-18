@@ -1,6 +1,6 @@
 {
   "file_types": {
-    "jinja2": ["*.html"]
+    "jinja2": ["*.html"],
   },
   "lsp": {
     "jinja-lsp": {
@@ -10,6 +10,11 @@
         "lang": "python",
         "template_extensions": ["html"],
       },
+    },
+  },
+  "languages": {
+    "Python": {
+      "language_servers": ["ty", "ruff"],
     },
   },
 }

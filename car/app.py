@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any, TypedDict, cast
 
 # 3p
-from flask import (  # type: ignore # we ignore this so we can better type it later
+from flask import (
     Flask,
     abort,
     flash,
@@ -72,7 +72,7 @@ class Session(TypedDict, total=False):
     voters_searched: list[ID]
 
 
-session: Session
+session: Session  # type: ignore
 
 SETTINGS_KEYS: Session = {
     "use_map": 1,
