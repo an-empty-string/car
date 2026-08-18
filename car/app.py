@@ -942,7 +942,11 @@ def activity_feed():
     filter_disposition = request.args.get("disposition")
 
     for voter_id, notes in note_db.voter.items():
-        voter = db.get_voter_by_note_id(voter_id)
+        try:
+            voter = db.get_voter_by_note_id(voter_id)
+        except KeyError:
+            continue
+
         for note in notes:
             if (
                 filter_disposition is not None
