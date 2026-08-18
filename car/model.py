@@ -295,8 +295,8 @@ class Door(Model):
 
 
 class _DoorWithGeoCode(Door):
-    lat: float = 0  # type: ignore
-    lon: float = 0  # type: ignore
+    lat: float = 0
+    lon: float = 0
 
 
 def has_geocode(d: Door) -> TypeIs[_DoorWithGeoCode]:

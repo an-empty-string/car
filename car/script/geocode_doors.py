@@ -7,7 +7,7 @@ from ..model import Database, has_geocode
 sys.path.insert(
     0, os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../../geocode")
 )
-from geocode import get_geocoder  # pyright: ignore
+from geocode import get_geocoder  # type: ignore
 
 geocoder = get_geocoder()
 database = Database.get()
