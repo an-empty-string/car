@@ -15,6 +15,11 @@ dev = ["black>=26.5.1", "pyright>=1.1.411", "typing-extensions>=4.16.0"]
 [tool.setuptools]
 packages = ["car"]
 
+[tool.pyright]
+ignore = ["car/_jinja_globals_stub.py"]
+[tool.ruff]
+exclude = ["car/_jinja_globals_stub.py"]
+
 [tool.black]
 line-length = 88
 target-version = ['py310']
@@ -32,5 +37,3 @@ ignore = [
     "E501",  # line length - the formatter already does enough
     "B019",  # functools.cache in scripts
 ]
-[tool.ruff]
-exclude = ["car/_jinja_globals_stub.py"]
