@@ -32,3 +32,5 @@ ignore = [
     "E501",  # line length - the formatter already does enough
     "B019",  # functools.cache in scripts
 ]
+[tool.ruff]
+exclude = ["car/_jinja_globals_stub.py"]

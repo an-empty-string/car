@@ -1,0 +1,15 @@
+{
+  "file_types": {
+    "jinja2": ["*.html"]
+  },
+  "lsp": {
+    "jinja-lsp": {
+      "initialization_options": {
+        "templates": "./car/templates",
+        "backend": ["./car"],
+        "lang": "python",
+        "template_extensions": ["html"],
+      },
+    },
+  },
+}
