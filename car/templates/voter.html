@@ -3,7 +3,7 @@
 {% block content %}
 <nav>
     <ul id="door-crumbs">
-        {% if not g.phonebank %}
+        {% if session.last_turf and not g.phonebank %}
         <li>back to {{ turf_link() }}</li>
         <li>back to {{ door_link(voter.door_id) }}</li>
         {% endif %}
@@ -66,19 +66,26 @@
 
     <div class="desktop-column">
         {{ note_link("voter", voter.id, text="log conversation") }}
+
+        {% if session.last_turf %}
         <a href="{{ url_for('voter_act', id=voter.id, act="refused") }}"><button>refused conversation</button></a>
+        {% endif %}
+
         {% if g.phonebank %}
 
             <a href="{{ url_for('voter_act', id=voter.id, act="attempted") }}"><button>attempted/not reached</button></a>
             <a href="{{ url_for('voter_act', id=voter.id, act="wrong-number") }}"><button>wrong number</button></a>
 
-        {% else %}
+        {% elif session.last_turf %}
             <a href="{{ url_for('voter_act', id=voter.id, act="wrong-address") }}"><button>voter doesn't live here</button></a>
         {% endif %}
     </div>
     {% if g.phonebank %}
     <div class="desktop-column">
         <a href="{{ url_for('phonebank_next_voter', turf_id=session.phonebank_turf) }}"><button>next voter</button></a>
+        {% if session.previous_voter is not none and session.previous_voter != voter.id %}
+        <a href="{{ url_for('phonebank_previous_voter') }}"><button>previous voter</button></a>
+        {% endif %}
     </div>
     {% endif %}
 </div>

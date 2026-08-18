@@ -8,7 +8,7 @@ import subprocess
 
 from ..model import ID, Database, Turf, has_geocode
 
-TURF_DATA_PATH = os.getenv("TURF_DATA_PATH")
+TURF_DATA_PATH = os.getenv("TURF_DATA_PATH", "")
 TURF_GROUP_ID = os.getenv("TURF_GROUP")
 
 database = Database.get()
@@ -32,6 +32,8 @@ def sync_turf_props():
     cur.close()
 
     turf_group = get_turf_group()
+    assert turf_group
+
     active_turf_ids = {
         turf.id for turf in database.turfs if turf.group_id == turf_group.id
     }
@@ -68,6 +70,8 @@ def sync_turf_props():
 
             database.save_turf(turf)
 
+    database.commit()
+
     conn.commit()
     conn.close()
 
@@ -88,6 +92,9 @@ def set_voter_turfs():
             "--OUTPUT=./geocoded_doors_turfs_tmp.csv",
         ]
     )
+
+    turf_group = get_turf_group()
+    assert turf_group
 
     with open("geocoded_doors_turfs_tmp.csv") as f:
         turfed_doors = list(csv.DictReader(f))
@@ -115,10 +122,14 @@ def set_voter_turfs():
 
         # move every voter on this door to their new turf
         for voter_id in car_door.voters:
+            if voter_id not in turf_group.voters:
+                continue
+
             print(f"add voter {voter_id} to turf {new_turf_id}")
             new_turf.voters.append(voter_id)
 
     for turf in turfs.values():
+        print("save turf", turf.desc, f"{len(turf.voters)=} {len(turf.doors)=}")
         database.save_turf(turf)
 
 

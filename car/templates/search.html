@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}car search{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="/static/search.css">
+<h1 class="comfy">🔎 Search Voters</h1>
+<form method="POST">
+    <div class="search-bar">
+        <label for="query" class="sr-only">Search by name</label>
+        <input type="text" id="query" name="query" placeholder="Search by name..." value="{{ query }}" />
+        <button type="submit" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+        </button>
+    </div>
+</form>
+
+{% macro render_voter(voter) %}
+<li>
+    {{ voter_link(voter.id) }}<br />
+    <small>{{ short_demographics(voter) }}</small>
+    {% with disp, note = voter.last_disposition_with_note() %}
+    {% if disp %}
+    <div class="last-note">last note {{ render_time_since(note.ts) }} by {{ note.author }}: {{ note.note }} ({{ note.disposition }})</div>
+    {% endif %}
+    {% endwith %}
+</li>
+{% endmacro %}
+
+{% if results is not none %}
+<div>
+    <h1 class="comfy">Results</h1>
+    <ul class="secretly-a-table">
+        {% for voter in results %}
+        {{ render_voter(voter) }}
+        {% endfor %}
+    </ul>
+    {% if results | length == 20 %}
+    <div>For better results, refine your query!</div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

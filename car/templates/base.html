@@ -118,9 +118,8 @@
             {% if session.canvasser %}
             Hi, {{ session.canvasser }}! &middot;
 
-            {% if session.admin or session.turfs|length > 1 %}
-            <a href="/">Turfs</a> &middot;
-            {% endif %}
+            <a href="/">{% if session.admin or session.turfs|length > 1 %}Turfs{% else %}Canvass!{% endif %}</a> /
+            <a href="{{ url_for('search') }}">Find voter by name</a> &middot;
 
             {% if session.admin %}
             Admin session

@@ -1,0 +1,79 @@
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14pt;
+}
+
+.results-table th,
+.results-table td {
+    text-align: left;
+    padding: 6px 8px;
+}
+
+.results-table thead th {
+    border-bottom: 1px solid var(--heading-border);
+    font-weight: bold;
+}
+
+.results-table tbody tr:nth-child(odd) {
+    background-color: var(--stripe-bg);
+}
+
+.voter-status {
+    font-size: 80%;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.voter-status-A {
+    color: var(--success-color);
+}
+
+.voter-status-I {
+    color: var(--muted-color);
+}
+
+
+.search-bar {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--btn-border);
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: var(--bg-color);
+}
+
+.search-bar input[type="text"] {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14pt;
+    padding: 0.5em 0.75em;
+    color: var(--text-color);
+}
+
+.search-bar input[type="text"]:focus {
+    outline: none;
+}
+
+.search-bar button {
+    width: auto;
+    margin-top: 0;
+    padding: 0 1em;
+    border: none;
+    border-radius: 0;
+    background-color: var(--btn-bg);
+    color: var(--btn-text);
+}
+
+.search-bar button:hover { background-color: var(--btn-hover-bg); }
+.search-bar button:active { background-color: var(--btn-active-bg); }
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+}

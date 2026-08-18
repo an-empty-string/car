@@ -38,12 +38,14 @@ def go(expr):
         return
 
     results = []
+    doors = set()
 
     for voter in database.voters:
         result, data = _test_voter(voter, expr)
         if not result:
             continue
 
+        doors.add(voter.door_id)
         results.append(voter.model_dump() | data)
 
     with open("out.csv", "w") as f:
@@ -51,6 +53,7 @@ def go(expr):
         wr.writeheader()
         wr.writerows(results)
 
+    print(f"{len(results)} voters ({len(doors)} doors) written to out.csv")
     return len(results)
 
 
@@ -58,8 +61,7 @@ def main():
     while True:
         q = input("> ")
         try:
-            rows = go(q)
-            print(f"{rows} rows written to out.csv")
+            go(q)
         except Exception:
             traceback.print_exc()
             print()

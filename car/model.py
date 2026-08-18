@@ -264,7 +264,7 @@ class Door(Model):
         return None
 
     def id_for_notes(self):
-        return f"{self.address!r} {self.unit!r} {self.city!r}"
+        return f"{self.address!r} {self.unit!r} {self.city!r}".upper()
 
     def print_order_key(self):
         house_num, street = self.address.split(maxsplit=1)

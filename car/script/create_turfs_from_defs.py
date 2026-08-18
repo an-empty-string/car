@@ -103,6 +103,12 @@ def main():
     turf_configs = [c for c in configs if c["type"] == "turf"]
     group_configs = [c for c in configs if c["type"] == "group"]
 
+    if os.getenv("RESET"):
+        print("Reset existing turfs and groups!")
+        database.turfs = []
+        database.groups = []
+        database.commit()
+
     # get existing turfs/groups
     turfs_by_external_id = get_by_external_id(
         database.turfs,
@@ -122,9 +128,6 @@ def main():
         turf.voters = [
             voter.id for voter in database.voters if test_voter(voter, config["rule"])
         ]
-        # handle geodata (or don't)
-        if "geo_data" in config:
-            raise NotImplementedError("geo data not implemented yet!")
 
         database.save_turf(turf)
 
@@ -133,13 +136,21 @@ def main():
     for config in group_configs:
         group = groups_by_external_id[config["name"]]
 
-        for turf_external_id in config["turfs"]:
-            turf = turfs_by_external_id[turf_external_id]
-            group.turfs.append(turf.id)
-            turf.group_id = group.id
-            database.save_turf(turf)
-            group.voters.extend(turf.voters)
+        if "turfs" not in config:
+            group.voters = [
+                voter.id
+                for voter in database.voters
+                if test_voter(voter, config["rule"])
+            ]
             database.save_group(group)
+        else:
+            for turf_external_id in config["turfs"]:
+                turf = turfs_by_external_id[turf_external_id]
+                group.turfs.append(turf.id)
+                turf.group_id = group.id
+                database.save_turf(turf)
+                group.voters.extend(turf.voters)
+                database.save_group(group)
 
     assign_login_codes()
     database.fix_id_duplicates()
