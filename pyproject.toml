@@ -10,13 +10,18 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["black>=26.5.1", "pyright>=1.1.411", "typing-extensions>=4.16.0"]
+dev = [
+    "black>=26.5.1",
+    "ty>=0.0.72",
+    "typing-extensions>=4.16.0",
+]
 
 [tool.setuptools]
 packages = ["car"]
 
-[tool.pyright]
-ignore = ["car/_jinja_globals_stub.py"]
+[tool.ty.src]
+include = ["car"]
+exclude = ["car/_jinja_globals_stub.py"]
 [tool.ruff]
 exclude = ["car/_jinja_globals_stub.py"]
 
