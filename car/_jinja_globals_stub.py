@@ -1,0 +1,12 @@
+jinja_env.globals["db"] = None
+jinja_env.globals["session"] = None
+jinja_env.globals["reformat_phone"] = None
+jinja_env.globals["tel_uri"] = None
+jinja_env.globals["time_taken"] = None
+jinja_env.globals["dispositions"] = None
+jinja_env.globals["type_dispositions"] = None
+jinja_env.globals["session"] = None
+jinja_env.globals["request"] = None
+jinja_env.globals["g"] = None
+jinja_env.globals["config"] = None
+jinja_env.globals["url_for"] = None
