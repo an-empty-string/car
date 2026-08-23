@@ -32,12 +32,14 @@ for door in database.doors:
 
     if todone_result := todones.get((door.address, door.city)):
         print("Updated geocoding result from cached for", door.address, door.city)
+        already_geocoded.add(door.id)
         door.lat, door.lon = todone_result
 
     else:
         result = geocoder.geocode(door.address, door.city, unit=door.unit)
         if result is not None:
             print("Updated geocoding result for", door.address, door.city)
+            already_geocoded.add(door.id)
             door.lat, door.lon = result
 
         else:

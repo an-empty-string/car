@@ -61,6 +61,10 @@ def race(x):
 
 for line in lines:
     addr = line["Residence_Addresses_AddressLine"]
+
+    addr = addr.replace("Old Mdsn Pike", "Old Madison Pike")
+    addr = addr.replace("Rime Vlg Dr", "Rime Village Dr")
+
     unit = " ".join(
         filter(
             None,

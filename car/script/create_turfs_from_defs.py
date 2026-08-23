@@ -1,6 +1,7 @@
 import functools
 import json
 import os
+import traceback
 from collections.abc import Callable, Collection
 from typing import Any, Protocol
 
@@ -38,6 +39,8 @@ def _test_voter(voter, expr):
 
     expr = compile_expr(expr)
 
+    env["age"] = voter.age() or 0
+
     voter_targeting_data = targeting_data[voter.statevoterid].copy()
     for key, value in voter_targeting_data.pop("scores").items():
         key = key.removeprefix("hs_")
@@ -50,7 +53,12 @@ def _test_voter(voter, expr):
     env.update(voter_targeting_data)
 
     # run the eval
-    return eval(expr, env), env
+    try:
+        return eval(expr, env), env
+    except Exception:
+        traceback.print_exc()
+
+    return False, env
 
 
 class HasExternalId(Protocol):
