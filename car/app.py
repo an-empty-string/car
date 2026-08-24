@@ -546,6 +546,8 @@ def show_door(id: ID):
     turf = db.get_turf_by_id(last_turf)
     voters = [db.get_voter_by_id(voter_id) for voter_id in door.voters]
 
+    session["last_door"] = id
+
     # filter out "New Voter"
     voters = [v for v in voters if not v.should_hide()]
 
