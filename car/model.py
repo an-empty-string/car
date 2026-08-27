@@ -205,7 +205,9 @@ class Model(BaseModel):
     def add_note(self, note: Note, *, commit: bool = False):
         db = NoteDatabase.get()
 
-        send_feed_data({"obj": self.model_dump(), "note": note.model_dump()})
+        send_feed_data(
+            {"type": self.TYPE, "obj": self.model_dump(), "note": note.model_dump()}
+        )
 
         db.add(self.TYPE, self.id_for_notes(), note)
         if commit:
