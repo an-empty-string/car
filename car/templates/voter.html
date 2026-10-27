@@ -53,8 +53,12 @@
 
 <h2>📋️ Contact</h2>
 
+{% if session.show_all_info and session.admin %}
+<p><strong>Door</strong>: {{ door_link(voter.door_id) }}</p>
+{% endif %}
+
 <div class="desktop-row">
-    {% if g.phonebank and not session.phone_paired %}
+    {% if (g.phonebank and not session.phone_paired) or (session.show_all_info and session.admin) %}
     <div class="desktop-column">
         {% if voter.bestphone %}{{ phone_link("best", voter.bestphone) }}{% endif %}
         {% if voter.cellphone and voter.cellphone != voter.bestphone %}{{ phone_link("cell", voter.cellphone) }}{% endif %}

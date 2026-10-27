@@ -18,6 +18,10 @@
     {{ render_setting("zoom_phone", "Call links use Zoom Phone") }}
     {{ render_setting("dark_mode", "Enable dark mode") }}
 
+    {% if session.admin %}
+    {{ render_setting("show_all_info", "Always show all info on voters") }}
+    {% endif %}
+
     <button type="submit">Save and return</button>
 </form>
 {% endblock %}

@@ -79,6 +79,7 @@ SETTINGS_KEYS: Session = {
     "autolink": 1,
     "zoom_phone": 0,
     "dark_mode": 0,
+    "show_all_info": 0,
 }
 BASE_URL = "https://car.yourallyinmontgomery.org"
 
