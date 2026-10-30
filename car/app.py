@@ -1,4 +1,5 @@
 # stdlib
+import csv
 import datetime
 import functools
 import itertools
@@ -45,6 +46,22 @@ from .model import (
 )
 
 PHONEBANK_MIN_DELAY = 60 * 15
+
+PRECINCTS = {}
+if os.path.exists(os.path.join(DATA_ROOT, "voter_precincts.csv")):
+    with open(os.path.join(DATA_ROOT, "voter_precincts.csv")) as f:
+        for row in f:
+            row = row.strip().split(",")
+            if len(row) == 2:
+                k, v = row
+                PRECINCTS[k] = v
+
+
+PRECINCT_INFO = {}
+if os.path.exists(os.path.join(DATA_ROOT, "precinct_info.csv")):
+    with open(os.path.join(DATA_ROOT, "precinct_info.csv")) as f:
+        for row in csv.DictReader(f):
+            PRECINCT_INFO[row["Precinct"]] = row
 
 
 class Session(TypedDict, total=False):
@@ -656,9 +673,14 @@ def show_voter(id: ID):
 
     ensure_voter_accessible(voter)
 
+    precinct_info = {}
+    if voter.statevoterid in PRECINCTS:
+        precinct_info.update(PRECINCT_INFO.get(PRECINCTS[voter.statevoterid]))
+
     return render_template(
         "voter.html",
         voter=voter,
+        precinct=precinct_info,
         phone_household=householding.household_info_by_phones(voter),
     )
 
