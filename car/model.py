@@ -138,6 +138,9 @@ class Note(BaseModel):
             "do-not-contact",
         )
 
+    def get_ts(self):
+        return datetime.datetime.fromisoformat(self.ts)
+
 
 class NoteDatabase(BaseDatabase):
     DATABASE_FILE_NAME: ClassVar[str] = "note-database"

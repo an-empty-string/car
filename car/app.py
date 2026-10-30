@@ -1,4 +1,5 @@
 # stdlib
+import datetime
 import functools
 import itertools
 import json
@@ -853,9 +854,17 @@ def phonebank_next_voter(turf_id):
         voter = db.get_voter_by_id(voter_id)
 
         # don't phonebank anyone who we've conversed with before
-        # TODO - use the phone_key to decide config
+        # unless it's a GOTV turf, in which case threshold is 1w
+        # TODO - use the phone_key to decide more config
         if voter.notes:
-            continue
+            if turf.phone_key == "gotv_phonebank":
+                if (
+                    datetime.datetime.now() - voter.notes[-1].get_ts()
+                ).total_seconds < 86_400:
+                    continue
+
+            else:
+                continue
 
         # don't phonebank... you know, anyone without a phone...
         # TODO - use phone_key=textbank to check SMS instead
