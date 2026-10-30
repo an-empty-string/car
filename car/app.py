@@ -878,15 +878,18 @@ def phonebank_next_voter(turf_id):
         # don't phonebank anyone who we've conversed with before
         # unless it's a GOTV turf, in which case threshold is 1w
         # TODO - use the phone_key to decide more config
-        if voter.notes:
-            if turf.phone_key == "gotv_phonebank":
+        if turf.phone_key == "gotv_phonebank":
+            if voter.notes:
                 if (
                     datetime.datetime.now() - voter.notes[-1].get_ts()
                 ).total_seconds < 86_400:
                     continue
 
-            else:
+            if voter.statevoterid not in PRECINCTS:
                 continue
+
+        elif voter.notes:
+            continue
 
         # don't phonebank... you know, anyone without a phone...
         # TODO - use phone_key=textbank to check SMS instead
